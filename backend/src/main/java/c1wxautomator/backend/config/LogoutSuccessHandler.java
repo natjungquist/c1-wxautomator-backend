@@ -1,5 +1,14 @@
 package c1wxautomator.backend.config;
 
+// Author: Natalie Jungquist
+//
+// This class handles a successful logout. It extends 'LogoutHandler' to ensure that after
+// successful logout, the app's cache of authorized org IDs are cleared so logins made after this
+// will not have the wrong authorized org IDs.
+//
+// Usage:
+// SecurityConfig registers this
+
 import c1wxautomator.backend.services.WxAuthorizationService;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.stereotype.Component;
