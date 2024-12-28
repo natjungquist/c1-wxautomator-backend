@@ -34,7 +34,7 @@ public class UserController {
     public ResponseEntity<?> exportUsersCsv(@RequestParam("file") MultipartFile file) {
         try {
             ResponseEntity<?> res = userService.exportUsers(file);
-            return ResponseEntity.status(HttpStatus.OK).body("??");
+            return res;
 
             // TODO response will have:
             // num users successfully created
