@@ -15,7 +15,7 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
-import c1wxautomator.backend.dtos.webexResponses.OrganizationDetailsResponse;
+import c1wxautomator.backend.dtos.organizations.OrganizationDetailsResponse;
 
 @Service
 public class OrganizationService {

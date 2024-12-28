@@ -1,4 +1,4 @@
-package c1wxautomator.backend.dtos.webexResponses;
+package c1wxautomator.backend.dtos.organizations;
 
 // Author: Natalie Jungquist
 //
