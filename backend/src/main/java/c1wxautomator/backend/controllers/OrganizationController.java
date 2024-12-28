@@ -8,6 +8,7 @@ package c1wxautomator.backend.controllers;
 // - The `/my-name` endpoint, which fetches and returns the authenticated user's display name.
 // - If no valid access token is found, both endpoints return a `NOT_FOUND` status with an appropriate error message.
 
+import c1wxautomator.backend.dtos.organizations.OrganizationDetailsResponse;
 import c1wxautomator.backend.services.OrganizationService;
 import c1wxautomator.backend.services.WxAuthorizationService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +40,12 @@ public class OrganizationController {
     public ResponseEntity<?> getMyOrganizationDetails() {
         String accessToken = wxAuthorizationService.getAccessToken();
         if (accessToken != null) {
-            return organizationService.getOrganizationDetails(accessToken);
+            OrganizationDetailsResponse customOrganizationDetails = organizationService.getOrganizationDetails(accessToken);
+            if (customOrganizationDetails != null) {
+                return ResponseEntity.ok(customOrganizationDetails);
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();  // TODO come back to this later and handle showing message about why
+            }
         } else {
             Map<String, String> response = new HashMap<>();
             response.put("message", "Failed to get organization details because no access token was provided");

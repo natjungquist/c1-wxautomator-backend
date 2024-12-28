@@ -43,9 +43,9 @@ public class OrganizationService {
      *      and set/stored by this application's wxAuthenticationService.
      *
      * @param accessToken The token used for authenticating the request.
-     * @return ResponseEntity containing the organization details.
+     * @return custom object containing the organization details, else null if there is an error
      */
-    public ResponseEntity<OrganizationDetailsResponse> getOrganizationDetails(String accessToken) {
+    public OrganizationDetailsResponse getOrganizationDetails(String accessToken) {
 
         String orgId = getOrgId();
         String url = String.format("https://webexapis.com/v1/organizations/%s", orgId);
@@ -63,22 +63,22 @@ public class OrganizationService {
             HttpStatusCode statusCode = response.getStatusCode();
 
             if (statusCode.is2xxSuccessful() && responseBody != null) {
-                return createOrganizationResponseEntity(responseBody);
+                return createCustomOrganizationResponse(responseBody);
             } else {
-                return ResponseEntity.status(statusCode).build(); // Propagate non-successful HTTP status
+                return null;
             }
         } catch (HttpClientErrorException e) {
             e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+            return null;
         }
     }
 
     /**
      * Builds an Organization response entity
      * @param responseBody A response from an external API call
-     * @return an Organization object with all fields set
+     * @return custom object with all fields set, else null
      */
-    private static ResponseEntity<OrganizationDetailsResponse> createOrganizationResponseEntity(String responseBody) {
+    private static OrganizationDetailsResponse createCustomOrganizationResponse(String responseBody) {
         try {
             OrganizationDetailsResponse organizationDetailsResponse = new OrganizationDetailsResponse();
             // Parse the JSON response body
@@ -90,11 +90,11 @@ public class OrganizationService {
             // Set values in the Organization object
             organizationDetailsResponse.setDisplayName(displayName);
             organizationDetailsResponse.setId(thisOrgId);
-            return ResponseEntity.ok(organizationDetailsResponse);
+            return organizationDetailsResponse;
 
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            return null;
         }
     }
 }
