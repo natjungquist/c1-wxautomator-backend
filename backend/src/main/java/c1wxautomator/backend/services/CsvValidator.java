@@ -74,24 +74,4 @@ public class CsvValidator {
 //            return false;
 //        }
 //    }
-
-    /**
-     * Gets the number of rows in a given CSV file, excluding the header row.
-     *
-     * @param file the MultipartFile representing the uploaded CSV file.
-     * @return the number of data rows in the CSV file.
-     * @throws IOException if an error occurs while reading the file.
-     */
-    public static int getRowCount(MultipartFile file) throws Exception {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()));
-        CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withFirstRecordAsHeader());
-
-        int rowCount = 0;
-        for (CSVRecord record : csvParser) {
-            rowCount++;
-        }
-
-        csvParser.close();
-        return rowCount;
-    }
 }

@@ -7,6 +7,7 @@ package c1wxautomator.backend.controllers;
 // Key features include:
 // - Export users to Webex given a csv file as input.
 
+import c1wxautomator.backend.dtos.users.CustomExportUsersResponse;
 import c1wxautomator.backend.services.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 public class UserController {
@@ -33,8 +37,12 @@ public class UserController {
     @PostMapping("/export-users")
     public ResponseEntity<?> exportUsersCsv(@RequestParam("file") MultipartFile file) {
         try {
-            ResponseEntity<?> res = userService.exportUsers(file);
-            return res;
+            CustomExportUsersResponse response = userService.exportUsers(file);
+
+            Map<String, String> dummy = new HashMap<>();
+            dummy.put("message", "dummy");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(dummy);
+
 
             // TODO response will have:
             // num users successfully created

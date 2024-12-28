@@ -36,12 +36,14 @@ public class UserService {
      * @param file the file containing user data.
      * @return ResponseEntity containing the response status and data after processing the CSV.
      */
-    public ResponseEntity<?> exportUsers(MultipartFile file) {
+    public CustomExportUsersResponse exportUsers(MultipartFile file) {
+
+        CustomExportUsersResponse response = new CustomExportUsersResponse();
+
         // Checks that the file is valid
         if (!CsvValidator.isCsvFile(file)) {
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "File provided is not a CSV file.");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            // TODO
+            return response;
         }
 
         // Required CSV columns
@@ -51,7 +53,7 @@ public class UserService {
 //        );
 //        if (!(CsvValidator.csvContainsRequiredCols(file, requiredCols))) {
 //            Map<String, String> response = new HashMap<>();
-//            response.put("message", "File provided does not contain all of the columns required to process the request.");
+//            response.put("message", "File provided does not contain all the columns required to process the request.");
 //            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
 //        }
 
@@ -59,27 +61,6 @@ public class UserService {
         // contain this license because the Webex APIs for create user and assign license are separate.
         // Instead, the license assignment is processed in a separate request.
         // NOTE that creating the user with the bulk API automatically sets all licenses to false.
-
-        // TODO attempt sending a customexportusers response
-        // TODO attempt doing a bulk call
-
-//        Map<String, String> response = new HashMap<>();
-//        response.put("message", "dummy");
-//        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-
-        ResponseEntity<?> response = processCsvAndCreateUsers(file);
-        return response;
-
-    }
-
-    /**
-     * Processes the CSV file, reads user data, creates a bulk request for user creation,
-     * sends it to Webex API, and processes the response.
-     *
-     * @param file the CSV file containing user data.
-     * @return ResponseEntity containing a custom response based on the Webex API response.
-     */
-    private ResponseEntity<?> processCsvAndCreateUsers(MultipartFile file) {
 
         Map<String, List<String>> usernameToLicensesMap = new HashMap<>();  // to keep track of each user's licenses
         Map<String, String> bulkIdToUsernameMap = new HashMap<>();  // to keep track of each user and whether the export succeeds or fails
@@ -91,15 +72,19 @@ public class UserService {
         UserBulkRequest bulkRequest = createBulkRequest(users, bulkIdToUsernameMap);
 
         // Step 3: Send BulkRequest to Webex
-        ResponseEntity<?> webexResponse = sendBulkRequestToWebex(bulkRequest);
+        UserBulkResponse webexResponse = sendBulkRequestToWebex(bulkRequest);
+        if (webexResponse != null) {
+            // TODO
+        } else {
+            // TODO
+        }
 
         // Step 4: Process response and create a custom response for the frontend
-       // ResponseEntity<?> customResponse = processWebexResponse(webexResponse, bulkIdToUsernameMap);
+        // ResponseEntity<?> customResponse = processWebexResponse(webexResponse, bulkIdToUsernameMap);
 
-        return webexResponse;
+        return response;
+
         // Step 5: Assign licenses
-        // TODO: list licenses, get the ids for premium, standard, and calling - professional
-        // TODO actually assign the license
     }
 
     /**
@@ -145,8 +130,7 @@ public class UserService {
                         "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
                 ));
                 user.setSchemas(userSchemas);
-                //user.setLocation(record.get("Location"));
-                // TODO set all the other required fields and change header names
+
                 users.add(user);
 
                 // Keep track of the licenses that users might need to be granted
@@ -182,10 +166,10 @@ public class UserService {
         UserBulkRequest bulkRequest = new UserBulkRequest();
         List<String> bulkSchemas = new ArrayList<>(List.of(
                 "urn:ietf:params:scim:api:messages:2.0:BulkRequest"
-        ));
-        bulkRequest.setSchemas(bulkSchemas);  // from Webex documentation
+        )); // from Webex documentation
+        bulkRequest.setSchemas(bulkSchemas);
 
-        bulkRequest.setFailOnErrors(10); // TODO this is causing an error
+        bulkRequest.setFailOnErrors(10);
 
         List<UserOperationRequest> operations = new ArrayList<>();
 
@@ -214,35 +198,41 @@ public class UserService {
      * @param bulkRequest the bulk request containing user data.
      * @return ResponseEntity containing the Webex API response with bulk user creation results.
      */
-    private ResponseEntity<?> sendBulkRequestToWebex(UserBulkRequest bulkRequest) {
+    private UserBulkResponse sendBulkRequestToWebex(UserBulkRequest bulkRequest) {
         String accessToken = wxAuthorizationService.getAccessToken();
         String orgId = wxAuthorizationService.getAuthorizedOrgId();
         String URL = String.format("https://webexapis.com/identity/scim/%s/v2/Bulk", orgId);
 
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + accessToken);
-        headers.set("Content-Type", "application/json");
+        headers.setBearerAuth(accessToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
 
         HttpEntity<UserBulkRequest> requestEntity = new HttpEntity<>(bulkRequest, headers);
 
         try {
-            ResponseEntity<?> response = restTemplate.exchange(
+            ResponseEntity<UserBulkResponse> response = restTemplate.exchange(
                     URL,
                     HttpMethod.POST,
                     requestEntity,
-                    new ParameterizedTypeReference<UserBulkResponse>() {}
+                    new ParameterizedTypeReference<>() {}
             );
-            System.out.println(response.getBody());
+            // response: status:200 OK, headers:..., body:userbulkresponse:schemas...operations: [useroperationresponse]
+            if (response.getStatusCode().is2xxSuccessful()) {
+                return response.getBody();
+            } else {
+                // TODO extra error handling for specific status codes
+                return null;
+//                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response.getBody());
+            }
+
         } catch (HttpServerErrorException e) {
             System.out.println(e.getMessage());
-            // Handle error appropriately, e.g., retry or notify users
-        }
 
-        // TODO send back the real response
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "dummy");
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            //Map<String, String> response = new HashMap<>();
+            //response.put("message", "something went wrong calling the webex api");
+            return null;
+        }
     }
 
     /**
@@ -254,7 +244,7 @@ public class UserService {
      * @param bulkIdToUsernameMap a map to relate bulk operation IDs to usernames.
      * @return ResponseEntity containing the processed response for the frontend.
      */
-//    private ResponseEntity<?> processWebexResponse(ResponseEntity<UserBulkResponse> webexResponse, Map<String, String> bulkIdToUsernameMap) {
+//    private CustomExportUsersResponse processWebexResponse(ResponseEntity<UserBulkResponse> webexResponse, Map<String, String> bulkIdToUsernameMap) {
 //        // TODO fix
 //        CustomExportUsersResponse customResponse = new CustomExportUsersResponse();
 //

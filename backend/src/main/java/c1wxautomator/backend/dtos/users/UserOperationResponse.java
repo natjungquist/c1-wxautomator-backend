@@ -2,7 +2,7 @@ package c1wxautomator.backend.dtos.users;
 
 // Author: Natalie Jungquist
 //
-// This class represents the response structure for an individual user operation result in the WebEx system.
+// This class represents the response structure for an individual user operation result as returned by the Webex API.
 // It contains information about the status, method, and bulk ID of the operation, along with any error details if applicable.
 // This class is used to capture the result of a specific user-related operation, such as creating or updating users.
 
