@@ -43,11 +43,6 @@ public class UserController {
             dummy.put("message", "dummy");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(dummy);
 
-
-            // TODO response will have:
-            // num users successfully created
-            // which ones specifically - can get those by bulk ID
-
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("??");  // TODO some message

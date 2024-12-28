@@ -9,21 +9,18 @@ package c1wxautomator.backend.services;
 //      - Count the number of rows in a CSV file.
 //
 // Dependencies:
-//      - OpenCSV library for reading CSV files.
-//      - Apache Commons CSV for parsing and handling CSV records.
 //      - Spring Framework's MultipartFile for file handling.
 //
 // Usage:
 // This class is intended to be used in services or controllers that process CSV uploads.
 
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVParser;
-import org.apache.commons.csv.CSVRecord;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.HashSet;
+import java.util.Set;
 
 public class CsvValidator {
 
@@ -56,22 +53,25 @@ public class CsvValidator {
      * @param requiredCols a Set of Strings representing the required column names.
      * @return true if the file contains all the required columns, false otherwise.
      */
-//    public static boolean csvContainsRequiredCols(MultipartFile file, Set<String> requiredCols) {
-//        try (CSVReader reader = new CSVReader(new InputStreamReader(file.getInputStream()))) {
-//            // Read the header row
-//            String[] header = reader.readNext();
-//            if (header == null) {
-//                return false; // No header, invalid file
-//            }
-//
-//            // Convert header to a Set for comparison
-//            Set<String> headerSet = new HashSet<>(Set.of(header));
-//
-//            // Check if required columns are in the header
-//            return headerSet.containsAll(requiredCols);
-//        } catch (IOException | CsvValidationException e) {
-//            e.printStackTrace();
-//            return false;
-//        }
-//    }
+    public static boolean csvContainsRequiredCols(MultipartFile file, Set<String> requiredCols) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
+            // Read the first line as the header
+            String headerLine = reader.readLine();
+            if (headerLine == null) {
+                return false; // No header, invalid file
+            }
+
+            // Split the header line into columns
+            String[] header = headerLine.split(",");
+
+            // Convert the header into a Set for easy comparison
+            Set<String> headerSet = new HashSet<>(Set.of(header));
+
+            // Check if required columns are in the header
+            return headerSet.containsAll(requiredCols);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }

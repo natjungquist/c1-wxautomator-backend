@@ -47,15 +47,14 @@ public class UserService {
         }
 
         // Required CSV columns
-//        Set<String> requiredCols = new HashSet<>(
-//                Set.of("First Name", "Display Name", "Status", "Email", "Location",
-//                        "Webex Contact Center Premium Agent", "Webex Contact Center Standard Agent", "Webex Calling - Professional")
-//        );
-//        if (!(CsvValidator.csvContainsRequiredCols(file, requiredCols))) {
-//            Map<String, String> response = new HashMap<>();
-//            response.put("message", "File provided does not contain all the columns required to process the request.");
-//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-//        }
+        Set<String> requiredCols = new HashSet<>(
+                Set.of("First Name", "Display Name", "Status", "Email", "Location",
+                        "Webex Contact Center Premium Agent", "Webex Contact Center Standard Agent", "Webex Calling - Professional")
+        );
+        if (!(CsvValidator.csvContainsRequiredCols(file, requiredCols))) {
+            //response.put("message", "File provided does not contain all the columns required to process the request.");
+            return response;
+        }
 
         // NOTE that the csv file will contain the license to be granted to the user, but the User object will not
         // contain this license because the Webex APIs for create user and assign license are separate.
