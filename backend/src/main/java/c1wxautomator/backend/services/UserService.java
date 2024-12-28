@@ -5,6 +5,14 @@ package c1wxautomator.backend.services;
 // Service class for managing user operations with Webex APIs, including user creation and license assignment.
 // This class interacts with Webex APIs to create users in bulk, assign licenses, and handle CSV file uploads.
 // It processes CSV files containing user data, validates required columns, and manages the bulk creation process.
+//
+// Dependencies:
+//      - Spring Framework's MultipartFile for file handling.
+//      - Apache Commons CSV to parse CSVs
+//      - custom data transfer objects such as User, UserBulkRequest, UserBulkResponse, etc
+//
+// Usage:
+// Used by any controller that needs to bulk export users to Webex API.
 
 import c1wxautomator.backend.dtos.users.*;
 import org.springframework.core.ParameterizedTypeReference;

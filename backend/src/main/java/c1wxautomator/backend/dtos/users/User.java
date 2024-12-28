@@ -6,6 +6,9 @@ package c1wxautomator.backend.dtos.users;
 // Its fields are named to fit Webex API request specifications.
 //
 // Contains inner class Name that holds data for the user's name. It is an inner class to conform to the Webex API request format.
+//
+// Usage:
+// UserService will transfer client's data into this User class before sending it as part of a request to the Webex API.
 
 import lombok.Getter;
 import lombok.Setter;

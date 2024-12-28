@@ -5,6 +5,13 @@ package c1wxautomator.backend.services;
 // This service class fetches organization details for the authenticated user. It interacts with the WebEx API to retrieve
 // information about the user's organization, such as its ID and display name. It also handles parsing the API response
 // and managing the authorization code flow for provisioning calls.
+//
+// Dependencies:
+//      - JsonNode to transfer Webex API response to data transfer object OrganizationDetailsResponse
+//      - custom data transfer object OrganizationDetailsResponse to send custom response
+//
+// Usage:
+// Used by any controller that needs to call the Webex API for organization details.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

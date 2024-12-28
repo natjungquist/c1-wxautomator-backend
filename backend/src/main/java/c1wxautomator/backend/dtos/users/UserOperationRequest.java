@@ -4,6 +4,9 @@ package c1wxautomator.backend.dtos.users;
 //
 // This class holds data for the 'operations' portion of the request sent to the Webex API for bulk creating users.
 // Its fields are named to fit Webex API request specifications.
+//
+// Usage:
+// UserService will use this class to send data to Webex API.
 
 import lombok.Getter;
 import lombok.Setter;

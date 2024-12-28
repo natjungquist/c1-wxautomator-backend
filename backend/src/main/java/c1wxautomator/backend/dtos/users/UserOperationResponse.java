@@ -5,6 +5,10 @@ package c1wxautomator.backend.dtos.users;
 // This class represents the response structure for an individual user operation result as returned by the Webex API.
 // It contains information about the status, method, and bulk ID of the operation, along with any error details if applicable.
 // This class is used to capture the result of a specific user-related operation, such as creating or updating users.
+//
+// Usage:
+// Services that make calls to the Webex API endpoint to bulk create users will receive
+// a response represented by this data structure.
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
