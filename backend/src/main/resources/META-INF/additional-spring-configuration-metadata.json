@@ -1,0 +1,18 @@
+{
+  "properties": [
+    {
+      "name": "base.url",
+      "type": "java.lang.String",
+      "description": "The base URL for the backend application."
+    },
+    {
+      "name": "frontend.url",
+      "type": "java.lang.String",
+      "description": "frontend.url."
+    },
+    {
+      "name": "callback.url",
+      "type": "java.lang.String",
+      "description": "callback.url."
+    }
+  ] }
