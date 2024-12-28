@@ -4,9 +4,17 @@ package c1wxautomator.backend.controllers;
 //
 // This controller manages organization-related endpoints in the application.
 // Key features include:
-// - The `/my-organization` endpoint, which retrieves details about the authenticated user's organization using the access token.
-// - The `/my-name` endpoint, which fetches and returns the authenticated user's display name.
-// - If no valid access token is found, both endpoints return a `NOT_FOUND` status with an appropriate error message.
+//      - The `/my-organization` endpoint, which retrieves details about the authenticated user's organization using the access token.
+//      - The `/my-name` endpoint, which fetches and returns the authenticated user's display name.
+//      - If no valid access token is found, endpoints return a `NOT_FOUND` status with an appropriate error message.
+//
+// Dependencies:
+//      - wxAuthorizationService to retrieve access token
+//      - organizationService to retrieve organization details
+//
+// Usage:
+// Backend endpoints for client to request details about their organization.
+
 
 import c1wxautomator.backend.dtos.organizations.OrganizationDetailsResponse;
 import c1wxautomator.backend.services.OrganizationService;

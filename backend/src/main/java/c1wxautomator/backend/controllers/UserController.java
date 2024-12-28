@@ -5,7 +5,14 @@ package c1wxautomator.backend.controllers;
 //
 // This controller handles user-related endpoints for the application.
 // Key features include:
-// - Export users to Webex given a csv file as input.
+//      - Export users to Webex given a csv file as input.
+//
+// Dependencies:
+//      - UserService to execute the operations.
+//      - Spring Framework's MultipartFile for receiving file as input.
+//
+// Usage:
+// Endpoint for client to export users.
 
 import c1wxautomator.backend.dtos.users.CustomExportUsersResponse;
 import c1wxautomator.backend.services.UserService;
