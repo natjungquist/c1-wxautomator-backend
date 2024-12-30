@@ -3,11 +3,13 @@ package c1wxautomator.backend.dtos.wrappers;
 //
 // This is a custom class representing
 // Key features include:
+//      - status of the response that will be meaningful to sent to the client.
 //      - message if further details about the response need to be relayed.
-//      -
+//      - data containing possible response body
 //
 // Usage:
-// This class is intended to be used in services that ... TODO
+// This class is designed for services that interact with external APIs and need to provide
+// informative feedback to clients about the external API responses.
 
 import lombok.Getter;
 import lombok.Setter;
