@@ -9,7 +9,7 @@ package c1wxautomator.backend.services;
 // Dependencies:
 //      - Spring Framework's MultipartFile for file handling.
 //      - Apache Commons CSV to parse CSVs
-//      - custom data transfer objects such as User, UserBulkRequest, UserBulkResponse, etc
+//      - custom data transfer objects such as User, UserBulkRequest, UserBulkResponse, etc.
 //
 // Usage:
 // Used by any controller that needs to bulk export users to Webex API.
@@ -57,7 +57,7 @@ public class UserService {
 
         // Required CSV columns
         Set<String> requiredCols = new HashSet<>(
-                Set.of("First Name", "Display Name", "Status", "Email", "Location",
+                Set.of("First Name", "Display Name", "Status", "Email", "Extension", "Location", "Phone Number",
                         "Webex Contact Center Premium Agent", "Webex Contact Center Standard Agent", "Webex Calling - Professional")
         );
         if (!(CsvValidator.csvContainsRequiredCols(file, requiredCols))) {
@@ -125,23 +125,34 @@ public class UserService {
                 // Parse the rest of the records and set them to User objects
                 User user = new User();
                 user.setDisplayName(record.get("Display Name"));
+
                 User.Name name = new User.Name();
                 name.setGivenName(record.get("First Name"));
                 name.setFamilyName(record.get("Last Name"));
                 user.setName(name);
-                user.setUserName(record.get("Email"));  // The email column of the csv file corresponds to the userName field for the request
-                user.populateEmails();
+
+                user.setEmail(record.get("Email"));  // The email column of the csv file corresponds to the userName field for the request
+
                 if (record.get("Status").equalsIgnoreCase("active")) {
                     user.setActive(true);
                 } else {
                     user.setActive(false);
                 }
+
                 List<String> userSchemas = new ArrayList<>(List.of(
                         "urn:ietf:params:scim:schemas:core:2.0:User",
                         "urn:scim:schemas:extension:cisco:webexidentity:2.0:User",
                         "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
                 ));
                 user.setSchemas(userSchemas);
+
+                if (record.get("Extension") != null) {
+                    User.PhoneNumber extension = new User.PhoneNumber();
+                    extension.setValue(record.get("Extension"));
+                    user.addPhoneNumber(extension);
+                }
+
+                // TODO make sure the extension does not already exist
 
                 users.add(user);
 
@@ -188,7 +199,7 @@ public class UserService {
         int counter = 1;
         for (User user : users) {
             String bulkId = "user-" + counter++;
-            bulkIdToUsernameMap.put(bulkId, user.getUserName());
+            bulkIdToUsernameMap.put(bulkId, user.getEmail());
 
             UserOperationRequest operation = new UserOperationRequest();
             operation.setMethod("POST");
@@ -275,15 +286,15 @@ public class UserService {
         }
     }
 
-    /**
-     * Processes the Webex API response after submitting the bulk user creation request.
-     * Maps the Webex API response to a custom response for the frontend, providing relevant details
-     * about the success or failure of each user operation.
-     *
-     * @param webexResponse the Webex API response body containing the bulk user creation results.
-     * @param bulkIdToUsernameMap a map to relate bulk operation IDs to usernames.
-     * @return CustomExportUsersResponse containing the processed response details.
-     */
+//    /**
+//     * Processes the Webex API response after submitting the bulk user creation request.
+//     * Maps the Webex API response to a custom response for the frontend, providing relevant details
+//     * about the success or failure of each user operation.
+//     *
+//     * @param webexResponse the Webex API response body containing the bulk user creation results.
+//     * @param bulkIdToUsernameMap a map to relate bulk operation IDs to usernames.
+//     * @return CustomExportUsersResponse containing the processed response details.
+//     */
 //    private CustomExportUsersResponse processWebexResponse(UserBulkResponse webexResponse, Map<String, String> bulkIdToUsernameMap) {
 //
 //            List<UserOperationResponse> operations = bulkResponse.getOperations();  // Extract operations from the response

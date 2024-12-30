@@ -7,7 +7,7 @@ package c1wxautomator.backend.services;
 // and managing the authorization code flow for provisioning calls.
 //
 // Dependencies:
-//      - JsonNode to transfer Webex API response to data transfer object OrganizationDetailsResponse
+//      - ObjectMapper and JsonNode to transfer Webex API response to data transfer object OrganizationDetailsResponse
 //      - custom data transfer object OrganizationDetailsResponse to send custom response
 //
 // Usage:
