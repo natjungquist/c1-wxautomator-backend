@@ -28,9 +28,14 @@ import java.util.List;
 @Getter
 @NoArgsConstructor
 public class CustomExportUsersResponse {
+    private Integer status;
     private String message;
     private List<SuccessResult> successes = new ArrayList<>();
     private List<FailureResult> failures = new ArrayList<>();
+
+    public boolean is2xxSuccess() {
+        return this.status != null && this.status >= 200 && this.status < 300;
+    }
 
     public void addSuccess(String bulkId, String username) {
         successes.add(new SuccessResult(bulkId, username));

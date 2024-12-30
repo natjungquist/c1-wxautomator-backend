@@ -23,7 +23,7 @@ public class ApiResponseWrapper {
     private String message;
     private Object data;
 
-    public boolean isSuccess() {
-        return this.status == 200;
+    public boolean is2xxSuccess() {
+        return this.status != null && this.status >= 200 && this.status < 300;
     }
 }
