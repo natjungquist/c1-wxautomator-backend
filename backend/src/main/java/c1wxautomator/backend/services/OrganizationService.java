@@ -82,7 +82,7 @@ public class OrganizationService {
                     webexResponse.setMessage("Error creating organization details response due to logical error in server program..");
                 }
                 webexResponse.setData(organizationDetailsResponse);
-                webexResponse.setStatus(HttpStatus.OK.value());
+                webexResponse.setStatus(statusCode.value());
             } else {
                 webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
                 webexResponse.setMessage("An unexpected error occurred getting organization details.");
