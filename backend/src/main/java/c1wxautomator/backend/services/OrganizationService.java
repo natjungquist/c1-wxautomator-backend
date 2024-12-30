@@ -89,7 +89,8 @@ public class OrganizationService {
             }
             return webexResponse;
 
-            // NOTE: all possible exceptions are caught in this code for debugging purposes
+            // NOTE: all possible exceptions are caught in this code for (1) debugging purposes and (2) to return
+            // meaningful responses to client via ApiResponseWrapper.
         } catch (HttpClientErrorException e) { // These occur when the HTTP response status code is 4xx.
                                                 // Examples:  400 Bad Request, 401 Unauthorized, 404 Not Found, 403 Forbidden
             System.out.println("HttpClientErrorException: " + e.getMessage());
