@@ -17,6 +17,7 @@ package c1wxautomator.backend.controllers;
 
 
 import c1wxautomator.backend.dtos.organizations.OrganizationDetailsResponse;
+import c1wxautomator.backend.dtos.wrappers.ApiResponseWrapper;
 import c1wxautomator.backend.services.OrganizationService;
 import c1wxautomator.backend.services.WxAuthorizationService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,11 +49,13 @@ public class OrganizationController {
     public ResponseEntity<?> getMyOrganizationDetails() {
         String accessToken = wxAuthorizationService.getAccessToken();
         if (accessToken != null) {
-            OrganizationDetailsResponse customOrganizationDetails = organizationService.getOrganizationDetails(accessToken);
-            if (customOrganizationDetails != null) {
-                return ResponseEntity.ok(customOrganizationDetails);
+            ApiResponseWrapper webexResponse = organizationService.getOrganizationDetails(accessToken);
+            if (webexResponse.isSuccess()) {
+                OrganizationDetailsResponse organizationDetailsResponse = (OrganizationDetailsResponse) webexResponse.getData();
+                return ResponseEntity.ok(organizationDetailsResponse);
             } else {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();  // TODO come back to this later and handle showing message about why
+                // return a response corresponding to what is set in ApiResponseWrapper
+                return ResponseEntity.status(webexResponse.getStatus()).body(webexResponse.getMessage());
             }
         } else {
             Map<String, String> response = new HashMap<>();

@@ -13,6 +13,7 @@ package c1wxautomator.backend.services;
 // Usage:
 // Used by any controller that needs to call the Webex API for organization details.
 
+import c1wxautomator.backend.dtos.wrappers.ApiResponseWrapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.*;
@@ -20,8 +21,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.*;
 import c1wxautomator.backend.dtos.organizations.OrganizationDetailsResponse;
 
 @Service
@@ -50,9 +50,12 @@ public class OrganizationService {
      *      and set/stored by this application's wxAuthenticationService.
      *
      * @param accessToken The token used for authenticating the request.
-     * @return custom object containing the organization details, else null if there is an error
+     * @return custom ApiResponseWrapper object where 'status' is the status of the response from
+     * the call to the Webex API and 'data' is the organization details or null if there is an error.
      */
-    public OrganizationDetailsResponse getOrganizationDetails(String accessToken) {
+    public ApiResponseWrapper getOrganizationDetails(String accessToken) {
+
+        ApiResponseWrapper webexResponse = new ApiResponseWrapper();
 
         String orgId = getOrgId();
         String url = String.format("https://webexapis.com/v1/organizations/%s", orgId);
@@ -64,19 +67,59 @@ public class OrganizationService {
 
         RestTemplate restTemplate = new RestTemplate();
 
+        // Per the Webex documentation, possible responses are 2xx, 4xx, or 5xx.
+        // They will be handled and interpreted here.
+        // Java throws exceptions for 4xx and 5xx status codes, so this must be in a try-catch block.
         try {
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
             String responseBody = response.getBody();
             HttpStatusCode statusCode = response.getStatusCode();
 
             if (statusCode.is2xxSuccessful() && responseBody != null) {
-                return createCustomOrganizationResponse(responseBody);
+                OrganizationDetailsResponse organizationDetailsResponse = createCustomOrganizationResponse(responseBody);
+                if (organizationDetailsResponse == null) {
+                    webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+                    webexResponse.setMessage("Error creating organization details response due to logical error in server program..");
+                }
+                webexResponse.setData(organizationDetailsResponse);
+                webexResponse.setStatus(HttpStatus.OK.value());
             } else {
-                return null;
+                webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+                webexResponse.setMessage("An unexpected error occurred getting organization details.");
             }
-        } catch (HttpClientErrorException e) {
+            return webexResponse;
+
+            // NOTE: all possible exceptions are caught in this code for debugging purposes
+        } catch (HttpClientErrorException e) { // These occur when the HTTP response status code is 4xx.
+                                                // Examples:  400 Bad Request, 401 Unauthorized, 404 Not Found, 403 Forbidden
+            System.out.println("HttpClientErrorException: " + e.getMessage());
             e.printStackTrace();
-            return null;
+            webexResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+            webexResponse.setMessage("Webex API returned a 4xx error for getting organization details.");
+            return webexResponse;
+        } catch (HttpServerErrorException e) { // These occur when the HTTP response status code is 5xx.
+                                                // Examples: 500 Internal Server Error, 502 Bad Gateway, 503 Service Unavailable
+            System.out.println("HttpServerErrorException: " + e.getMessage());
+            e.printStackTrace();
+            webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            webexResponse.setMessage("Webex API returned a 5xx error for getting organization details.");
+            return webexResponse;
+        } catch (ResourceAccessException e) { // These occur when there are problems with the network or the server.
+                                                // Examples: DNS resolution failures, Connection timeouts, SSL handshake failures
+            System.out.println("ResourceAccessException: " + e.getMessage());
+            e.printStackTrace();
+            webexResponse.setStatus(HttpStatus.SERVICE_UNAVAILABLE.value());
+            webexResponse.setMessage("Error accessing Webex API when trying to get organization details.");
+            return webexResponse;
+        } catch (RestClientException e) { // These occur when the response body cannot be converted to the desired object type.
+                                            //and all other runtime exceptions within the RestTemplate.
+                                            // Examples: Mismatched response structure, Parsing errors, Incorrect use of
+                                            // ParameterizedTypeReference, Invalid request or URL, Method not allowed
+            System.out.println("RestClientException: " + e.getMessage());
+            e.printStackTrace();
+            webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            webexResponse.setMessage("Error getting organization details from Webex API due to logical error in server program.");
+            return webexResponse;
         }
     }
 
