@@ -23,9 +23,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.HashMap;
-import java.util.Map;
-
 @RestController
 public class UserController {
 
@@ -39,24 +36,17 @@ public class UserController {
      * Endpoint for exporting users to Webex customer
      *
      * @param file with user information
-     * @return success or failure message
+     * @return response with success or failure messages
      */
     @PostMapping("/export-users")
     public ResponseEntity<?> exportUsersCsv(@RequestParam("file") MultipartFile file) {
-        try {
-            CustomExportUsersResponse response = userService.exportUsers(file);
 
-            Map<String, String> dummy = new HashMap<>();
-            dummy.put("message", "dummy");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(dummy);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("??");  // TODO some message
-
-            // TODO response will have:
-            // if 403: forbidden message
-            // if some other conflict on Webex's side: return the message given by Webex
+        CustomExportUsersResponse customResponse = userService.exportUsers(file);
+        if (customResponse != null) {
+            return ResponseEntity.status(customResponse.getStatus()).body(customResponse);
+        } else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
         }
+
     }
 }

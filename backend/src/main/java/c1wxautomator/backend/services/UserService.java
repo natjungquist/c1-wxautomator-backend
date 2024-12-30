@@ -83,10 +83,17 @@ public class UserService {
         // Step 3: Send BulkRequest to Webex
         ApiResponseWrapper webexResponse = send_ExportUsersBulkRequest_ToWebex(bulkRequest);
 
+        // if the call to the Webex API was not successful, send the error status and message back to client
+        if (!webexResponse.is2xxSuccess()) {
+            response.setStatus(webexResponse.getStatus());
+            response.setMessage(webexResponse.getMessage());
+            return response;
+        }
 
         // Step 4: Process response and create a custom response for the frontend
-        //  = processWebexResponse(webexResponse, bulkIdToUsernameMap);
+        //  = processWebexResponse(, bulkIdToUsernameMap);
 
+        response.setStatus(HttpStatus.OK.value());
         return response;
 
         // Step 5: Assign licenses
@@ -227,7 +234,7 @@ public class UserService {
             if (response.getStatusCode().is2xxSuccessful()) {
                 UserBulkResponse userBulkResponse = response.getBody();
                 webexResponse.setData(userBulkResponse);
-                webexResponse.setStatus(HttpStatus.OK.value());
+                webexResponse.setStatus(response.getStatusCode().value());
             } else {
                 webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
                 webexResponse.setMessage("An unexpected error occurred exporting users.");
