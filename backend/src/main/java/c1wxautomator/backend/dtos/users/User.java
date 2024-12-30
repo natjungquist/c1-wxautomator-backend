@@ -31,7 +31,7 @@ public class User {
 
     private String displayName;  // maps to 'Display Name' in client's csv
     private Name name;
-    private final String userType = "user";
+    private String userType;
     private boolean active;  // the status field
     private List<String> schemas;
     private List<PhoneNumber> phoneNumbers = new ArrayList<>();
