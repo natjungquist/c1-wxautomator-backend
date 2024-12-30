@@ -37,19 +37,19 @@ public class User {
     private List<PhoneNumber> phoneNumbers = new ArrayList<>();
 
     // OPTIONAL FIELDS - HERE IN CASE THIS SERVER WANTS TO CONFIGURE THEM IN THE FUTURE
-    private String title;
-    private String preferredLanguage;
-    private String locale;
-    private String timezone;
-    private String profileUrl;
-    private String externalId;
-    private String nickName;
-    private List<Photo> photos;
-    private List<Address> addresses;
-    @JsonProperty("urn:ietf:params:scim:schemas:extension:enterprise:2.0:User")
-    private EnterpriseUser enterpriseUser;
-    @JsonProperty("urn:scim:schemas:extension:cisco:webexidentity:2.0:User")
-    private CiscoWebexIdentityUser webexIdentityUser;
+//    private String title;
+//    private String preferredLanguage;
+//    private String locale;
+//    private String timezone;
+//    private String profileUrl;
+//    private String externalId;
+//    private String nickName;
+//    private List<Photo> photos;
+//    private List<Address> addresses;
+//    @JsonProperty("urn:ietf:params:scim:schemas:extension:enterprise:2.0:User")
+//    private EnterpriseUser enterpriseUser;
+//    @JsonProperty("urn:scim:schemas:extension:cisco:webexidentity:2.0:User")
+//    private CiscoWebexIdentityUser webexIdentityUser;
 
     // METHODS
     public void setEmail(String email) {
