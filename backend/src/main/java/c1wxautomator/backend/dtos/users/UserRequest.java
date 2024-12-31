@@ -22,8 +22,7 @@ import java.util.List;
 @Setter
 @Getter
 @NoArgsConstructor
-public class User {
-
+public class UserRequest {
     // REQUIRED FIELDS
     @JsonProperty("userName")  // This annotation is the fieldName that the Webex API expects to receive, but this program will call it email instead.
     private String email;  // userName must be in the form of an email (and the domain must be authorized in Webex Control Hub)
@@ -31,7 +30,7 @@ public class User {
 
     private String displayName;  // maps to 'Display Name' in client's csv
     private Name name;
-    private String userType;
+    private String userType = "user";
     private boolean active;  // the status field
     private List<String> schemas;
     private List<PhoneNumber> phoneNumbers = new ArrayList<>();
@@ -100,7 +99,7 @@ public class User {
     @Getter
     public static class PhoneNumber {
         private String value;
-        private final String type = "work_extension";
+        private String type;
         private String display;
         private final boolean primary = true;
     }

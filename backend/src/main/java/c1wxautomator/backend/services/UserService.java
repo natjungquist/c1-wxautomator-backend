@@ -71,14 +71,16 @@ public class UserService {
         // Instead, the license assignment is processed in a separate request.
         // NOTE that creating the user with the bulk API automatically sets all licenses to false.
 
-        Map<String, List<String>> usernameToLicensesMap = new HashMap<>();  // to keep track of each user's licenses
+        // These maps store extra information about the users. This info is separate because creating the user must be done first.
+        // After the user is created, this info is need for further operations on the user.
+        Map<String, > userMetadata = new HashMap<>();
         Map<String, String> bulkIdToUsernameMap = new HashMap<>();  // to keep track of each user and whether the export succeeds or fails
 
         // Step 1: Read users from CSV
-        List<User> users = readUsersFromCsv(file, usernameToLicensesMap);
+        List<UserRequest> userRequests = readUsersFromCsv(file);
 
         // Step 2: Create BulkRequest and bulkId-to-username map
-        UserBulkRequest bulkRequest = createBulkRequest(users, bulkIdToUsernameMap);
+        UserBulkRequest bulkRequest = createBulkRequest(userRequests, bulkIdToUsernameMap);
 
         // Step 3: Send BulkRequest to Webex
         ApiResponseWrapper webexResponse = send_ExportUsersBulkRequest_ToWebex(bulkRequest);
@@ -90,25 +92,28 @@ public class UserService {
             return response;
         }
 
-        // Step 4: Process response and create a custom response for the frontend
-        //  = processWebexResponse(, bulkIdToUsernameMap);
+        // Step 4: Process response about creating users
+
+
+        // Step 5: Assign licenses
+
+
+        // Step 6: Create custom response body to send to client
 
         response.setStatus(HttpStatus.OK.value());
         return response;
-
-        // Step 5: Assign licenses
     }
 
     /**
-     * Reads user data from the CSV file and maps the information to User objects.
+     * Reads user data from the CSV file and maps the information to UserRequest objects.
      * The method also tracks licenses for each user based on the CSV content.
      *
      * @param file the CSV file to read.
      * @param usernameToLicensesMap a map to associate users with their required licenses.
-     * @return List of User objects created from the CSV file.
+     * @return List of UserRequest objects created from the CSV file.
      */
-    private List<User> readUsersFromCsv(MultipartFile file, Map<String, List<String>> usernameToLicensesMap) {
-        List<User> users = new ArrayList<>();
+    private List<UserRequest> readUsersFromCsv(MultipartFile file, Map<String, List<String>> usernameToLicensesMap) {
+        List<UserRequest> userRequests = new ArrayList<>();
 
         try (InputStream inputStream = file.getInputStream();
              Reader reader = new InputStreamReader(inputStream)) {
@@ -122,21 +127,22 @@ public class UserService {
             Iterable<CSVRecord> records = csvFormat.parse(reader);
 
             for (CSVRecord record : records) {
-                // Parse the rest of the records and set them to User objects
-                User user = new User();
-                user.setDisplayName(record.get("Display Name"));
+                // Parse the rest of the records and set them to UserRequest objects
+                UserRequest userRequest = new UserRequest();
 
-                User.Name name = new User.Name();
+                userRequest.setDisplayName(record.get("Display Name"));
+
+                UserRequest.Name name = new UserRequest.Name();
                 name.setGivenName(record.get("First Name"));
                 name.setFamilyName(record.get("Last Name"));
-                user.setName(name);
+                userRequest.setName(name);
 
-                user.setEmail(record.get("Email"));  // The email column of the csv file corresponds to the userName field for the request
+                userRequest.setEmail(record.get("Email"));  // The email column of the csv file corresponds to the userName field for the request
 
                 if (record.get("Status").equalsIgnoreCase("active")) {
-                    user.setActive(true);
+                    userRequest.setActive(true);
                 } else {
-                    user.setActive(false);
+                    userRequest.setActive(false);
                 }
 
                 List<String> userSchemas = new ArrayList<>(List.of(
@@ -144,17 +150,21 @@ public class UserService {
                         "urn:scim:schemas:extension:cisco:webexidentity:2.0:User",
                         "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
                 ));
-                user.setSchemas(userSchemas);
+                userRequest.setSchemas(userSchemas);
 
                 if (record.get("Extension") != null) {
-                    User.PhoneNumber extension = new User.PhoneNumber();
+                  // TODO MAKE SURE THE EXTENSION IS A NUMBER AND
+                  // TODO make sure the extension does not already exist
+                    UserRequest.PhoneNumber extension = new UserRequest.PhoneNumber();
                     extension.setValue(record.get("Extension"));
-                    user.addPhoneNumber(extension);
+                    extension.setType("work_extension");
+                    userRequest.addPhoneNumber(extension);
                 }
 
-                // TODO make sure the extension does not already exist
+                // TODO set non-extension phone numbers -
+                //  NOTE: must already be configured as a phone number at this location in order for this to work
 
-                users.add(user);
+                userRequests.add(userRequest);
 
                 // Keep track of the licenses that users might need to be granted
                 List<String> licenses = new ArrayList<>();
@@ -173,7 +183,7 @@ public class UserService {
             e.printStackTrace();  // TODO: Replace with proper logging or error handling
         }
 
-        return users;
+        return userRequests;
     }
 
     /**
@@ -181,11 +191,11 @@ public class UserService {
      * The request contains a list of user operations, where each operation creates a new user.
      * The method also tracks bulk IDs for each user.
      *
-     * @param users the list of User objects to be included in the bulk request.
+     * @param userRequests the list of UserRequest objects to be included in the bulk request.
      * @param bulkIdToUsernameMap a map to associate each bulk operation with a username.
      * @return A UserBulkRequest object representing the bulk creation request.
      */
-    private UserBulkRequest createBulkRequest(List<User> users, Map<String, String> bulkIdToUsernameMap) {
+    private UserBulkRequest createBulkRequest(List<UserRequest> userRequests, Map<String, String> bulkIdToUsernameMap) {
         UserBulkRequest bulkRequest = new UserBulkRequest();
         List<String> bulkSchemas = new ArrayList<>(List.of(
                 "urn:ietf:params:scim:api:messages:2.0:BulkRequest"
@@ -197,15 +207,15 @@ public class UserService {
         List<UserOperationRequest> operations = new ArrayList<>();
 
         int counter = 1;
-        for (User user : users) {
+        for (UserRequest userRequest : userRequests) {
             String bulkId = "user-" + counter++;
-            bulkIdToUsernameMap.put(bulkId, user.getEmail());
+            bulkIdToUsernameMap.put(bulkId, userRequest.getEmail());
 
             UserOperationRequest operation = new UserOperationRequest();
             operation.setMethod("POST");
             operation.setPath("/Users");
             operation.setBulkId(bulkId);
-            operation.setData(user);
+            operation.setData(userRequest);
 
             operations.add(operation);
         }
@@ -284,6 +294,10 @@ public class UserService {
             webexResponse.setMessage("Error bulk exporting users with Webex API due to logical error in server program.");
             return webexResponse;
         }
+    }
+
+    private SearchUsersResponse searchUsers(String orgId) {
+        return null;
     }
 
 //    /**
