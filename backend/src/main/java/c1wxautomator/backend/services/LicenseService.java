@@ -37,9 +37,13 @@ public class LicenseService {
      * Creates a map of all the licenses given. This map makes it easier to lookup by a license name.
      *
      * @param allLicenses list of licenses to be put in a map.
-     * @return map of licenses where the name is the key and a license object is the value.
+     * @return map of licenses where the name is the key and a license object is the value,
+     * else null if allLicenses has nothing in it.
      */
     public Map<String, License> makeLicensesMap(List<License> allLicenses) {
+        if (allLicenses == null || allLicenses.isEmpty()) {
+            return null;
+        }
         Map<String, License> licenseMap = new HashMap<>();
         for (License license : allLicenses) {
             licenseMap.put(license.getName(), license);

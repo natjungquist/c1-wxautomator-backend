@@ -40,9 +40,13 @@ public class LocationService {
      * Creates a map of all the locations given. This map makes it easier to lookup by a location name.
      *
      * @param allLocations list of locations to be put in a map.
-     * @return map of locations where the name is the key and a location object is the value.
+     * @return map of locations where the name is the key and a location object is the value,
+     * else null if allLocations has nothing in it.
      */
     public Map<String, Location> makeLocationsMap(List<Location> allLocations) {
+        if (allLocations == null || allLocations.isEmpty()) {
+            return null;
+        }
         Map<String, Location> locationMap = new HashMap<>();
         for (Location loc : allLocations) {
             locationMap.put(loc.getName(), loc);
