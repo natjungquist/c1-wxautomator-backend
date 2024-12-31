@@ -32,7 +32,7 @@ public class OrganizationService {
      *
      * @return organization id of the authenticated user
      */
-    public String getOrgId() {
+    public String getMyOrgId() {
 
         String orgId = null;
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -44,20 +44,34 @@ public class OrganizationService {
 
     /**
      * Fetches the details of the organization using an access token and the orgId.
-     * Note that as of 1/1/2025, the orgId associated with the list organizations endpoint
+     * Note that as of 1/1/2025, the orgId returned by Webex's 'list organizations' endpoint
      *      is not the same as the orgId needed to make API calls for provisioning.
      *      The orgId needed to make calls for provisioning is provided in the authorization code
-     *      and set/stored by this application's wxAuthenticationService.
+     *      which is set/stored by this application's wxAuthenticationService.
      *
      * @param accessToken The token used for authenticating the request.
      * @return custom ApiResponseWrapper object where 'status' is the status of the response from
      * the call to the Webex API and 'data' is the organization details or null if there is an error.
      */
-    public ApiResponseWrapper getOrganizationDetails(String accessToken) {
+    public ApiResponseWrapper getMyOrganizationDetails(String accessToken) {
+
+        String orgId = getMyOrgId();
+
+        return getOrganizationDetails(accessToken, orgId);
+    }
+
+    /**
+     * Calls Webex API to get details of a specific organization, specified by id.
+     *
+     * @param accessToken The token used for authenticating the request.
+     * @param orgId id of the organization to get the details of.
+     * @return custom ApiResponseWrapper object where 'status' is the status of the response from
+     * the call to the Webex API and 'data' is the organization details or null if there is an error.
+     */
+    public ApiResponseWrapper getOrganizationDetails(String accessToken, String orgId) {
 
         ApiResponseWrapper webexResponse = new ApiResponseWrapper();
 
-        String orgId = getOrgId();
         String url = String.format("https://webexapis.com/v1/organizations/%s", orgId);
 
         HttpHeaders headers = new HttpHeaders();
@@ -92,30 +106,30 @@ public class OrganizationService {
             // NOTE: all possible exceptions are caught in this code for (1) debugging purposes and (2) to return
             // meaningful responses to client via ApiResponseWrapper.
         } catch (HttpClientErrorException e) { // These occur when the HTTP response status code is 4xx.
-                                                // Examples:  400 Bad Request, 401 Unauthorized, 404 Not Found, 403 Forbidden
+            // Examples:  400 Bad Request, 401 Unauthorized, 404 Not Found, 403 Forbidden
             System.out.println("HttpClientErrorException: " + e.getMessage());
             e.printStackTrace();
             webexResponse.setStatus(HttpStatus.BAD_REQUEST.value());
             webexResponse.setMessage("Webex API returned a 4xx error for getting organization details.");
             return webexResponse;
         } catch (HttpServerErrorException e) { // These occur when the HTTP response status code is 5xx.
-                                                // Examples: 500 Internal Server Error, 502 Bad Gateway, 503 Service Unavailable
+            // Examples: 500 Internal Server Error, 502 Bad Gateway, 503 Service Unavailable
             System.out.println("HttpServerErrorException: " + e.getMessage());
             e.printStackTrace();
             webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             webexResponse.setMessage("Webex API returned a 5xx error for getting organization details.");
             return webexResponse;
         } catch (ResourceAccessException e) { // These occur when there are problems with the network or the server.
-                                                // Examples: DNS resolution failures, Connection timeouts, SSL handshake failures
+            // Examples: DNS resolution failures, Connection timeouts, SSL handshake failures
             System.out.println("ResourceAccessException: " + e.getMessage());
             e.printStackTrace();
             webexResponse.setStatus(HttpStatus.SERVICE_UNAVAILABLE.value());
             webexResponse.setMessage("Error accessing Webex API when trying to get organization details.");
             return webexResponse;
         } catch (RestClientException e) { // These occur when the response body cannot be converted to the desired object type.
-                                            //and all other runtime exceptions within the RestTemplate.
-                                            // Examples: Mismatched response structure, Parsing errors, Incorrect use of
-                                            // ParameterizedTypeReference, Invalid request or URL, Method not allowed
+            //and all other runtime exceptions within the RestTemplate.
+            // Examples: Mismatched response structure, Parsing errors, Incorrect use of
+            // ParameterizedTypeReference, Invalid request or URL, Method not allowed
             System.out.println("RestClientException: " + e.getMessage());
             e.printStackTrace();
             webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());

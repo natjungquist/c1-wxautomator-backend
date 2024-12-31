@@ -31,11 +31,6 @@ import java.io.*;
 
 @Service
 public class UserService {
-    private final WxAuthorizationService wxAuthorizationService;
-
-    public UserService(WxAuthorizationService wxAuthorizationService) {
-        this.wxAuthorizationService = wxAuthorizationService;
-    }
 
     /**
      * Exports users from the uploaded CSV file and creates them via the Webex API.
@@ -44,7 +39,7 @@ public class UserService {
      * @param file the file containing user data.
      * @return CustomExportUsersResponse that represents the status and body of the response from this server to the client.
      */
-    public CustomExportUsersResponse exportUsers(MultipartFile file) {
+    public CustomExportUsersResponse exportUsers(MultipartFile file, String accessToken, String orgId) {
 
         CustomExportUsersResponse response = new CustomExportUsersResponse();
 
@@ -73,17 +68,16 @@ public class UserService {
 
         // These maps store extra information about the users. This info is separate because creating the user must be done first.
         // After the user is created, this info is need for further operations on the user.
-//        Map<String, > userMetadata = new HashMap<>();
-        Map<String, String> bulkIdToUsernameMap = new HashMap<>();  // to keep track of each user and whether the export succeeds or fails
+        Map<String, UserMetadata> usersMetadataMap = new HashMap<>();
 
         // Step 1: Read users from CSV
-        List<UserRequest> userRequests = readUsersFromCsv(file);
+        List<UserRequest> userRequests = readUsersFromCsv(file, usersMetadataMap);
 
         // Step 2: Create BulkRequest and bulkId-to-username map
-        UserBulkRequest bulkRequest = createBulkRequest(userRequests, bulkIdToUsernameMap);
+        UserBulkRequest bulkRequest = createBulkRequest(userRequests, usersMetadataMap);
 
         // Step 3: Send BulkRequest to Webex
-        ApiResponseWrapper webexResponse = send_ExportUsersBulkRequest_ToWebex(bulkRequest);
+        ApiResponseWrapper webexResponse = send_ExportUsersBulkRequest_ToWebex(bulkRequest, accessToken, orgId);
 
         // if the call to the Webex API was not successful, send the error status and message back to client
         if (!webexResponse.is2xxSuccess()) {
@@ -111,7 +105,7 @@ public class UserService {
      * @param file the CSV file to read.
      * @return List of UserRequest objects created from the CSV file.
      */
-    private List<UserRequest> readUsersFromCsv(MultipartFile file) {
+    private List<UserRequest> readUsersFromCsv(MultipartFile file, Map<String, UserMetadata> usersMetadataMap) {
         List<UserRequest> userRequests = new ArrayList<>();
 
         try (InputStream inputStream = file.getInputStream();
@@ -128,6 +122,7 @@ public class UserService {
             for (CSVRecord record : records) {
                 // Parse the rest of the records and set them to UserRequest objects
                 UserRequest userRequest = new UserRequest();
+                UserMetadata userMetadata = new UserMetadata();
 
                 userRequest.setDisplayName(record.get("Display Name"));
 
@@ -160,6 +155,8 @@ public class UserService {
                 // TODO set non-extension phone numbers -
                 //  NOTE: must already be configured as a phone number at this location in order for this to work
 
+                // TODO set usermetadata location... and check if it's (1) a valid location and (2) if it matches the phone number
+
                 userRequests.add(userRequest);
 
                 // Keep track of the licenses that users might need to be granted
@@ -174,6 +171,10 @@ public class UserService {
                     licenses.add("Webex Calling - Professional");
                 }
 //                usernameToLicensesMap.put(record.get("Email"), licenses);
+                // TODO licenses here
+
+                userMetadata.setUserRequest(userRequest);
+                usersMetadataMap.put(userRequest.getEmail(), userMetadata);
             }
         } catch (IOException e) {
             e.printStackTrace();  // TODO: Replace with proper logging or error handling
@@ -188,10 +189,10 @@ public class UserService {
      * The method also tracks bulk IDs for each user.
      *
      * @param userRequests the list of UserRequest objects to be included in the bulk request.
-     * @param bulkIdToUsernameMap a map to associate each bulk operation with a username.
+     * @param usersMetadataMap a map to associate each username to metadata about them.
      * @return A UserBulkRequest object representing the bulk creation request.
      */
-    private UserBulkRequest createBulkRequest(List<UserRequest> userRequests, Map<String, String> bulkIdToUsernameMap) {
+    private UserBulkRequest createBulkRequest(List<UserRequest> userRequests, Map<String, UserMetadata> usersMetadataMap) {
         UserBulkRequest bulkRequest = new UserBulkRequest();
         List<String> bulkSchemas = new ArrayList<>(List.of(
                 "urn:ietf:params:scim:api:messages:2.0:BulkRequest"
@@ -205,7 +206,9 @@ public class UserService {
         int counter = 1;
         for (UserRequest userRequest : userRequests) {
             String bulkId = "user-" + counter++;
-            bulkIdToUsernameMap.put(bulkId, userRequest.getEmail());
+            UserMetadata currentUserMetadata = usersMetadataMap.get(userRequest.getEmail());
+            currentUserMetadata.setBulkId(bulkId);
+            // TODO make sure this does pass by val correctly
 
             UserOperationRequest operation = new UserOperationRequest();
             operation.setMethod("POST");
@@ -228,11 +231,9 @@ public class UserService {
      * @return custom ApiResponseWrapper object where 'status' is the status of the response from
      *      the call to the Webex API and 'data' is the UserBulkResponse data or null if there is an error.
      */
-    private ApiResponseWrapper send_ExportUsersBulkRequest_ToWebex(UserBulkRequest bulkRequest) {
+    private ApiResponseWrapper send_ExportUsersBulkRequest_ToWebex(UserBulkRequest bulkRequest, String accessToken, String orgId) {
         ApiResponseWrapper webexResponse = new ApiResponseWrapper();
 
-        String accessToken = wxAuthorizationService.getAccessToken();
-        String orgId = wxAuthorizationService.getAuthorizedOrgId();
         String URL = String.format("https://webexapis.com/identity/scim/%s/v2/Bulk", orgId);
 
         HttpHeaders headers = new HttpHeaders();
@@ -292,7 +293,7 @@ public class UserService {
         }
     }
 
-    private SearchUsersResponse searchUsers(String orgId) {
+    private SearchUsersResponse searchUsers(String accessToken, String orgId) {
         return null;
     }
 

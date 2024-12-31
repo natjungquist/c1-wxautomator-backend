@@ -9,13 +9,19 @@ package c1wxautomator.backend.controllers;
 //
 // Dependencies:
 //      - UserService to execute the operations.
+//      - LocationService
+//      - LicenseService
+//      - WxAuthorizationService
 //      - Spring Framework's MultipartFile for receiving file as input.
 //
 // Usage:
 // Endpoint for client to export users.
 
 import c1wxautomator.backend.dtos.users.CustomExportUsersResponse;
+import c1wxautomator.backend.services.LicenseService;
+import c1wxautomator.backend.services.LocationService;
 import c1wxautomator.backend.services.UserService;
+import c1wxautomator.backend.services.WxAuthorizationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,9 +33,15 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserController {
 
     private final UserService userService;
+    private final LocationService locationService;
+    private final LicenseService licenseService;
+    private final WxAuthorizationService wxAuthorizationService;
 
-    public UserController(final UserService userService) {
+    public UserController(final UserService userService, LocationService locationService, LicenseService licenseService, WxAuthorizationService wxAuthorizationService) {
         this.userService = userService;
+        this.locationService = locationService;
+        this.licenseService = licenseService;
+        this.wxAuthorizationService = wxAuthorizationService;
     }
 
     /**
@@ -41,7 +53,10 @@ public class UserController {
     @PostMapping("/export-users")
     public ResponseEntity<?> exportUsersCsv(@RequestParam("file") MultipartFile file) {
 
-        CustomExportUsersResponse customResponse = userService.exportUsers(file);
+        String accessToken = wxAuthorizationService.getAccessToken();
+        String orgId = wxAuthorizationService.getAuthorizedOrgId();
+
+        CustomExportUsersResponse customResponse = userService.exportUsers(file, accessToken, orgId);
         if (customResponse != null) {
             return ResponseEntity.status(customResponse.getStatus()).body(customResponse);
         } else {
