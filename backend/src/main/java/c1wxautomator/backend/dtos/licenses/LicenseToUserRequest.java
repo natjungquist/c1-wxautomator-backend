@@ -1,5 +1,12 @@
 package c1wxautomator.backend.dtos.licenses;
 
+// Author: Natalie Jungquist
+//
+// TODO
+//
+// Usage:
+// This class is used
+
 import lombok.Getter;
 import lombok.Setter;
 

@@ -1,4 +1,4 @@
-package c1wxautomator.backend.dtos.licenses;
+package c1wxautomator.backend.dtos.locations;
 
 // Author: Natalie Jungquist
 //
@@ -12,7 +12,6 @@ import lombok.Setter;
 
 @Setter
 @Getter
-public class License {
-    private Integer id;
+public class Location {
     private String name;
 }

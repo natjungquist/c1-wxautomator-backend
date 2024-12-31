@@ -9,14 +9,16 @@ package c1wxautomator.backend.controllers;
 //
 // Dependencies:
 //      - UserService to execute the operations.
-//      - LocationService
-//      - LicenseService
-//      - WxAuthorizationService
+//      - LocationService to get the possible locations a user can be at.
+//      - LicenseService to get the possible license a user can be assigned.
+//      - WxAuthorizationService to get the access token for the app to work and the id of the org to add users to.
 //      - Spring Framework's MultipartFile for receiving file as input.
 //
 // Usage:
 // Endpoint for client to export users.
 
+import c1wxautomator.backend.dtos.licenses.License;
+import c1wxautomator.backend.dtos.locations.Location;
 import c1wxautomator.backend.dtos.users.CustomExportUsersResponse;
 import c1wxautomator.backend.services.LicenseService;
 import c1wxautomator.backend.services.LocationService;
@@ -28,6 +30,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+import java.util.Map;
 
 @RestController
 public class UserController {
@@ -56,7 +61,13 @@ public class UserController {
         String accessToken = wxAuthorizationService.getAccessToken();
         String orgId = wxAuthorizationService.getAuthorizedOrgId();
 
-        CustomExportUsersResponse customResponse = userService.exportUsers(file, accessToken, orgId);
+        List<License> allLicenses = licenseService.listLicenses(accessToken, orgId);
+        Map<String, License> licenses = licenseService.makeLicensesMap(allLicenses);
+
+        List<Location> allLocations = locationService.listLocations(accessToken, orgId);
+        Map<String, Location> locations = locationService.makeLocationsMap(allLocations);
+
+        CustomExportUsersResponse customResponse = userService.exportUsers(file, accessToken, orgId, licenses, locations);
         if (customResponse != null) {
             return ResponseEntity.status(customResponse.getStatus()).body(customResponse);
         } else {

@@ -14,6 +14,8 @@ package c1wxautomator.backend.services;
 // Usage:
 // Used by any controller that needs to bulk export users to Webex API.
 
+import c1wxautomator.backend.dtos.licenses.License;
+import c1wxautomator.backend.dtos.locations.Location;
 import c1wxautomator.backend.dtos.users.*;
 import c1wxautomator.backend.dtos.wrappers.ApiResponseWrapper;
 import org.springframework.core.ParameterizedTypeReference;
@@ -37,9 +39,14 @@ public class UserService {
      * Validates the CSV file format, checks for required columns, and processes the file to create users in bulk.
      *
      * @param file the file containing user data.
+     * @param accessToken The token used for authenticating the request.
+     * @param orgId id of the organization to export users to.
+     * @param licenses map of licenses at this organization.
+     * @param locations map of locations at this organization.
      * @return CustomExportUsersResponse that represents the status and body of the response from this server to the client.
      */
-    public CustomExportUsersResponse exportUsers(MultipartFile file, String accessToken, String orgId) {
+    public CustomExportUsersResponse exportUsers(MultipartFile file, String accessToken, String orgId,
+                                                 Map<String, License> licenses, Map<String, Location> locations) {
 
         CustomExportUsersResponse response = new CustomExportUsersResponse();
 
@@ -228,6 +235,8 @@ public class UserService {
      * Uses the RestTemplate to make the API call and handles authorization with an OAuth2 token.
      *
      * @param bulkRequest the bulk request containing user data.
+     * @param accessToken The token used for authenticating the request.
+     * @param orgId id of the organization to export users to.
      * @return custom ApiResponseWrapper object where 'status' is the status of the response from
      *      the call to the Webex API and 'data' is the UserBulkResponse data or null if there is an error.
      */
