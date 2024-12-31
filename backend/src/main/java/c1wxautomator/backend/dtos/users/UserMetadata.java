@@ -34,7 +34,23 @@ public class UserMetadata {
     public String getExtension() {
         if (!userRequest.getPhoneNumbers().isEmpty()) {
             for (UserRequest.PhoneNumber num : userRequest.getPhoneNumbers()) {
-                if (num.getType().equals("work_extension")) {
+                if (num.getType().equals("work_extension") && num.getPrimary()) {
+                    return num.getValue();
+                }
+            }
+        }
+        return "";
+    }
+
+    /**
+     * Method to get the user's primary work phone number.
+     *
+     * @return String of digits representing the user's work phone number, or null if they don't have one.
+     */
+    public String getPrimaryWorkPhoneNumber() {
+        if (!userRequest.getPhoneNumbers().isEmpty()) {
+            for (UserRequest.PhoneNumber num : userRequest.getPhoneNumbers()) {
+                if (num.getType().equals("work") && num.getPrimary()) {
                     return num.getValue();
                 }
             }
