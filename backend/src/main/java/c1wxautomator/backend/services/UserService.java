@@ -73,7 +73,7 @@ public class UserService {
 
         // These maps store extra information about the users. This info is separate because creating the user must be done first.
         // After the user is created, this info is need for further operations on the user.
-        Map<String, > userMetadata = new HashMap<>();
+//        Map<String, > userMetadata = new HashMap<>();
         Map<String, String> bulkIdToUsernameMap = new HashMap<>();  // to keep track of each user and whether the export succeeds or fails
 
         // Step 1: Read users from CSV
@@ -109,10 +109,9 @@ public class UserService {
      * The method also tracks licenses for each user based on the CSV content.
      *
      * @param file the CSV file to read.
-     * @param usernameToLicensesMap a map to associate users with their required licenses.
      * @return List of UserRequest objects created from the CSV file.
      */
-    private List<UserRequest> readUsersFromCsv(MultipartFile file, Map<String, List<String>> usernameToLicensesMap) {
+    private List<UserRequest> readUsersFromCsv(MultipartFile file) {
         List<UserRequest> userRequests = new ArrayList<>();
 
         try (InputStream inputStream = file.getInputStream();
@@ -155,10 +154,7 @@ public class UserService {
                 if (record.get("Extension") != null) {
                   // TODO MAKE SURE THE EXTENSION IS A NUMBER AND
                   // TODO make sure the extension does not already exist
-                    UserRequest.PhoneNumber extension = new UserRequest.PhoneNumber();
-                    extension.setValue(record.get("Extension"));
-                    extension.setType("work_extension");
-                    userRequest.addPhoneNumber(extension);
+                    userRequest.addPrimaryExtension((record.get("Extension")));
                 }
 
                 // TODO set non-extension phone numbers -
@@ -177,7 +173,7 @@ public class UserService {
                 if (record.get("Webex Calling - Professional").equalsIgnoreCase("true")) {
                     licenses.add("Webex Calling - Professional");
                 }
-                usernameToLicensesMap.put(record.get("Email"), licenses);
+//                usernameToLicensesMap.put(record.get("Email"), licenses);
             }
         } catch (IOException e) {
             e.printStackTrace();  // TODO: Replace with proper logging or error handling
@@ -298,6 +294,10 @@ public class UserService {
 
     private SearchUsersResponse searchUsers(String orgId) {
         return null;
+    }
+
+    private boolean isValidExtension(String extension) {
+        return false;
     }
 
 //    /**
