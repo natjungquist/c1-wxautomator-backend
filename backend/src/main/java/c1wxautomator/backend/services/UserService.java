@@ -50,24 +50,6 @@ public class UserService {
 
         CustomExportUsersResponse response = new CustomExportUsersResponse();
 
-        // Checks that the file is valid
-        if (!CsvValidator.isCsvFile(file)) {
-            response.setStatus(HttpStatus.BAD_REQUEST.value());
-            response.setMessage("The wrong type of file was provided. Must be a CSV file.");
-            return response;
-        }
-
-        // Required CSV columns
-        Set<String> requiredCols = new HashSet<>(
-                Set.of("First Name", "Display Name", "Status", "Email", "Extension", "Location", "Phone Number",
-                        "Webex Contact Center Premium Agent", "Webex Contact Center Standard Agent", "Webex Calling - Professional")
-        );
-        if (!(CsvValidator.csvContainsRequiredCols(file, requiredCols))) {
-            response.setStatus(HttpStatus.BAD_REQUEST.value());
-            response.setMessage("File provided does not contain all the columns required to process the request.");
-            return response;
-        }
-
         // NOTE that the csv file will contain the license to be granted to the user, but the User object will not
         // contain this license because the Webex APIs for create user and assign license are separate.
         // Instead, the license assignment is processed in a separate request.

@@ -50,4 +50,11 @@ public class LicenseService {
         }
         return licenseMap;
     }
+
+    public void assignLicenseToUser() {
+        // TODO handle if a license needs to be assigned but the org has none
+//        if (allLicenses == null || allLicenses.isEmpty()) {
+//            return ResponseEntity.status(HttpStatus.NO_CONTENT).body("There are no licenses available at your organization, so none can be assigned.");
+//        }
+    }
 }
