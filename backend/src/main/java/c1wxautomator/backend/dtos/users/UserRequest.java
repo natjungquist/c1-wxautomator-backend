@@ -139,7 +139,7 @@ public class UserRequest {
         private String value;
         private String type;
         private String display;
-        private boolean primary;
+        private Boolean primary;
 
         public Email(String value, String type, String display, boolean isPrimary) {
             this.value = value;
@@ -156,7 +156,7 @@ public class UserRequest {
         private String value;
         private String type;
         private String display;
-        private boolean primary;
+        private Boolean primary;
 
         public PhoneNumber(String value, String type, String display, boolean isPrimary) {
             this.value = value;
@@ -232,7 +232,7 @@ public class UserRequest {
             private String value;
             private String type;
             private String display;
-            private boolean primary;
+            private Boolean primary;
         }
 
         @Setter
