@@ -58,7 +58,8 @@ public class LicenseService {
                 webexResponse.setStatus(response.getStatusCode().value());
             } else {
                 webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-                webexResponse.setMessage(String.format("An unexpected error occurred retrieving the license information at the organization with id: %s", orgId));
+                webexResponse.setMessage(String.format("An unexpected error occurred retrieving the license information " +
+                        "at the organization with id: %s", orgId));
             }
             return webexResponse;
 
@@ -66,30 +67,26 @@ public class LicenseService {
             // meaningful responses to client via ApiResponseWrapper.
         } catch (HttpClientErrorException e) { // These occur when the HTTP response status code is 4xx.
             // Examples:  400 Bad Request, 401 Unauthorized, 404 Not Found, 403 Forbidden
-            System.out.println("HttpClientErrorException: " + e.getMessage());
             webexResponse.setStatus(HttpStatus.BAD_REQUEST.value());
-            webexResponse.setMessage("Webex API returned a 4xx error for retrieving license information.");
+            webexResponse.setMessage("Webex API returned a 4xx error for retrieving license information: " + e.getResponseBodyAsString());
             return webexResponse;
 
         } catch (HttpServerErrorException e) { // These occur when the HTTP response status code is 5xx.
             // Examples: 500 Internal Server Error, 502 Bad Gateway, 503 Service Unavailable
-            System.out.println("HttpServerErrorException: " + e.getMessage());
             webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            webexResponse.setMessage("Webex API returned a 5xx error for retrieving license information.");
+            webexResponse.setMessage("Webex API returned a 5xx error for retrieving license information: " + e.getResponseBodyAsString());
             return webexResponse;
 
         } catch (ResourceAccessException e) { // These occur when there are problems with the network or the server.
             // Examples: DNS resolution failures, Connection timeouts, SSL handshake failures
-            System.out.println("ResourceAccessException: " + e.getMessage());
             webexResponse.setStatus(HttpStatus.SERVICE_UNAVAILABLE.value());
-            webexResponse.setMessage("Error accessing Webex API when trying to retrieve license information.");
+            webexResponse.setMessage("Error accessing Webex API when trying to retrieve license information: " + e.getMessage());
             return webexResponse;
 
         } catch (RestClientException e) { // These occur when the response body cannot be converted to the desired object type.
             //and all other runtime exceptions within the RestTemplate.
             // Examples: Mismatched response structure, Parsing errors, Incorrect use of
             // ParameterizedTypeReference, Invalid request or URL, Method not allowed
-            System.out.println("RestClientException: " + e.getMessage());
             webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             webexResponse.setMessage("Error retrieving the license information from Webex API due to logical error in server program: " + e.getMessage());
             return webexResponse;

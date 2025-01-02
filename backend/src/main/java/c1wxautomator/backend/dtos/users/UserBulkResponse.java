@@ -20,4 +20,8 @@ import java.util.List;
 public class UserBulkResponse {
     private List<String> schemas;
     private List<UserOperationResponse> operations;
+
+    public boolean hasOperations() {
+        return operations != null && !operations.isEmpty();
+    }
 }

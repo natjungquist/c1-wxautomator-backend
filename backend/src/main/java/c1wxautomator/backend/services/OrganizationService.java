@@ -107,33 +107,25 @@ public class OrganizationService {
             // meaningful responses to client via ApiResponseWrapper.
         } catch (HttpClientErrorException e) { // These occur when the HTTP response status code is 4xx.
             // Examples:  400 Bad Request, 401 Unauthorized, 404 Not Found, 403 Forbidden
-            System.out.println("HttpClientErrorException: " + e.getMessage());
-            e.printStackTrace();
             webexResponse.setStatus(HttpStatus.BAD_REQUEST.value());
-            webexResponse.setMessage("Webex API returned a 4xx error for getting organization details.");
+            webexResponse.setMessage("Webex API returned a 4xx error for getting organization details: " + e.getResponseBodyAsString());
             return webexResponse;
         } catch (HttpServerErrorException e) { // These occur when the HTTP response status code is 5xx.
             // Examples: 500 Internal Server Error, 502 Bad Gateway, 503 Service Unavailable
-            System.out.println("HttpServerErrorException: " + e.getMessage());
-            e.printStackTrace();
             webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            webexResponse.setMessage("Webex API returned a 5xx error for getting organization details.");
+            webexResponse.setMessage("Webex API returned a 5xx error for getting organization details: " + e.getResponseBodyAsString());
             return webexResponse;
         } catch (ResourceAccessException e) { // These occur when there are problems with the network or the server.
             // Examples: DNS resolution failures, Connection timeouts, SSL handshake failures
-            System.out.println("ResourceAccessException: " + e.getMessage());
-            e.printStackTrace();
             webexResponse.setStatus(HttpStatus.SERVICE_UNAVAILABLE.value());
-            webexResponse.setMessage("Error accessing Webex API when trying to get organization details.");
+            webexResponse.setMessage("Error accessing Webex API when trying to get organization details: " + e.getMessage());
             return webexResponse;
         } catch (RestClientException e) { // These occur when the response body cannot be converted to the desired object type.
             //and all other runtime exceptions within the RestTemplate.
             // Examples: Mismatched response structure, Parsing errors, Incorrect use of
             // ParameterizedTypeReference, Invalid request or URL, Method not allowed
-            System.out.println("RestClientException: " + e.getMessage());
-            e.printStackTrace();
             webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            webexResponse.setMessage("Error getting organization details from Webex API due to logical error in server program.");
+            webexResponse.setMessage("Error getting organization details from Webex API due to logical error in server program: " + e.getMessage());
             return webexResponse;
         }
     }
