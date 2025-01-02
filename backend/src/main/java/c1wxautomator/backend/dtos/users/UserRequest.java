@@ -94,6 +94,15 @@ public class UserRequest {
     }
 
     /**
+     * Adds non-primary work phone number to the user's list of phone numbers.
+     *
+     * @param workNumber representing the phone number to be added.
+     */
+    public void addNonPrimaryWorkNumber(String workNumber) {
+        this.phoneNumbers.add( new PhoneNumber(workNumber, "work", "Work", false) );
+    }
+
+    /**
      * Adds a home phone number to the user's list of phone numbers.
      *
      * @param homeNumber representing the phone number to be added.

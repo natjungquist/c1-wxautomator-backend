@@ -50,7 +50,7 @@ public class UserService {
 
         CustomExportUsersResponse response = new CustomExportUsersResponse();
 
-        // NOTE that the csv file will contain the license to be granted to the user, but the User object will not
+        // NOTE that the csv file will contain the license to be granted to the user, but the UserRequest object will not
         // contain this license because the Webex APIs for create user and assign license are separate.
         // Instead, the license assignment is processed in a separate request.
         // NOTE that creating the user with the bulk API automatically sets all licenses to false.
@@ -60,7 +60,7 @@ public class UserService {
         Map<String, UserMetadata> usersMetadataMap = new HashMap<>();
 
         // Step 1: Read users from CSV
-        List<UserRequest> userRequests = readUsersFromCsv(file, usersMetadataMap);
+        List<UserRequest> userRequests = readUsersFromCsv(file, usersMetadataMap, licenses);
 
         // Step 2: Create BulkRequest and bulkId-to-username map
         UserBulkRequest bulkRequest = createBulkRequest(userRequests, usersMetadataMap);
@@ -94,7 +94,7 @@ public class UserService {
      * @param file the CSV file to read.
      * @return List of UserRequest objects created from the CSV file.
      */
-    private List<UserRequest> readUsersFromCsv(MultipartFile file, Map<String, UserMetadata> usersMetadataMap) {
+    private List<UserRequest> readUsersFromCsv(MultipartFile file, Map<String, UserMetadata> usersMetadataMap, Map<String, License> licenses) {
         List<UserRequest> userRequests = new ArrayList<>();
 
         try (InputStream inputStream = file.getInputStream();
@@ -149,18 +149,15 @@ public class UserService {
                 userRequests.add(userRequest);
 
                 // Keep track of the licenses that users might need to be granted
-                List<String> licenses = new ArrayList<>();
                 if (record.get("Webex Contact Center Premium Agent").equalsIgnoreCase("true")) {
-                    licenses.add("Webex Contact Center Premium Agent");
+                    userMetadata.addLicense(licenses.get("Contact Center Premium Agent"));
                 }
                 if (record.get("Webex Contact Center Standard Agent").equalsIgnoreCase("true")) {
-                    licenses.add("Webex Contact Center Standard Agent");
+                    userMetadata.addLicense(licenses.get("Contact center Standard Agent"));  // NOTE the Webex API spells them differently (yes, this is confusing)
                 }
                 if (record.get("Webex Calling - Professional").equalsIgnoreCase("true")) {
-                    licenses.add("Webex Calling - Professional");
+                    userMetadata.addLicense(licenses.get("Webex Calling - Professional"));
                 }
-//                usernameToLicensesMap.put(record.get("Email"), licenses);
-                // TODO licenses here
 
                 userMetadata.setUserRequest(userRequest);
                 usersMetadataMap.put(userRequest.getEmail(), userMetadata);
@@ -279,7 +276,7 @@ public class UserService {
                                             // ParameterizedTypeReference, Invalid request or URL, Method not allowed
             System.out.println("RestClientException: " + e.getMessage());
             webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            webexResponse.setMessage("Error bulk exporting users with Webex API due to logical error in server program.");
+            webexResponse.setMessage("Error bulk exporting users with Webex API due to logical error in server program: " + e.getMessage());
             return webexResponse;
         }
     }

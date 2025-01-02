@@ -12,7 +12,12 @@ package c1wxautomator.backend.services;
 // Used by any controller or service that needs to use Webex license API.
 
 import c1wxautomator.backend.dtos.licenses.License;
+import c1wxautomator.backend.dtos.licenses.ListLicensesResponse;
+import c1wxautomator.backend.dtos.wrappers.ApiResponseWrapper;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.*;
 
 import java.util.HashMap;
 import java.util.List;
@@ -29,8 +34,66 @@ public class LicenseService {
      * @param orgId id of the organization to export users to.
      * @return list of available licenses.
      */
-    public List<License> listLicenses(String accessToken, String orgId) {
-        return null;
+    public ApiResponseWrapper listLicenses(String accessToken, String orgId) {
+        ApiResponseWrapper webexResponse = new ApiResponseWrapper();
+
+        String URL = String.format("https://webexapis.com/v1/licenses?orgId=%s", orgId);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<ListLicensesResponse> requestEntity = new HttpEntity<>(headers);
+
+        RestTemplate restTemplate = new RestTemplate();
+
+        // Per the Webex documentation, possible responses are 2xx, 4xx, or 5xx.
+        // They will be handled and interpreted here.
+        // Java throws exceptions for 4xx and 5xx status codes, so this must be in a try-catch block.
+        try {
+            ResponseEntity<ListLicensesResponse> response = restTemplate.exchange(URL, HttpMethod.GET,
+                    requestEntity, new ParameterizedTypeReference<>() {});
+            if (response.getStatusCode().is2xxSuccessful()) {
+                ListLicensesResponse listLicensesResponse = response.getBody();
+                webexResponse.setData(listLicensesResponse);
+                webexResponse.setStatus(response.getStatusCode().value());
+            } else {
+                webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+                webexResponse.setMessage(String.format("An unexpected error occurred retrieving the license information at the organization with id: %s", orgId));
+            }
+            return webexResponse;
+
+            // NOTE: all possible exceptions are caught in this code for (1) debugging purposes and (2) to return
+            // meaningful responses to client via ApiResponseWrapper.
+        } catch (HttpClientErrorException e) { // These occur when the HTTP response status code is 4xx.
+            // Examples:  400 Bad Request, 401 Unauthorized, 404 Not Found, 403 Forbidden
+            System.out.println("HttpClientErrorException: " + e.getMessage());
+            webexResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+            webexResponse.setMessage("Webex API returned a 4xx error for retrieving license information.");
+            return webexResponse;
+
+        } catch (HttpServerErrorException e) { // These occur when the HTTP response status code is 5xx.
+            // Examples: 500 Internal Server Error, 502 Bad Gateway, 503 Service Unavailable
+            System.out.println("HttpServerErrorException: " + e.getMessage());
+            webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            webexResponse.setMessage("Webex API returned a 5xx error for retrieving license information.");
+            return webexResponse;
+
+        } catch (ResourceAccessException e) { // These occur when there are problems with the network or the server.
+            // Examples: DNS resolution failures, Connection timeouts, SSL handshake failures
+            System.out.println("ResourceAccessException: " + e.getMessage());
+            webexResponse.setStatus(HttpStatus.SERVICE_UNAVAILABLE.value());
+            webexResponse.setMessage("Error accessing Webex API when trying to retrieve license information.");
+            return webexResponse;
+
+        } catch (RestClientException e) { // These occur when the response body cannot be converted to the desired object type.
+            //and all other runtime exceptions within the RestTemplate.
+            // Examples: Mismatched response structure, Parsing errors, Incorrect use of
+            // ParameterizedTypeReference, Invalid request or URL, Method not allowed
+            System.out.println("RestClientException: " + e.getMessage());
+            webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            webexResponse.setMessage("Error retrieving the license information from Webex API due to logical error in server program: " + e.getMessage());
+            return webexResponse;
+        }
     }
 
     /**
@@ -56,5 +119,9 @@ public class LicenseService {
 //        if (allLicenses == null || allLicenses.isEmpty()) {
 //            return ResponseEntity.status(HttpStatus.NO_CONTENT).body("There are no licenses available at your organization, so none can be assigned.");
 //        }
+    }
+
+    public void removeLicenseFromUser(String userId, String orgId) {
+
     }
 }

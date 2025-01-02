@@ -19,8 +19,10 @@ package c1wxautomator.backend.controllers;
 // Endpoint for client to export users.
 
 import c1wxautomator.backend.dtos.licenses.License;
+import c1wxautomator.backend.dtos.licenses.ListLicensesResponse;
 import c1wxautomator.backend.dtos.locations.Location;
 import c1wxautomator.backend.dtos.users.CustomExportUsersResponse;
+import c1wxautomator.backend.dtos.wrappers.ApiResponseWrapper;
 import c1wxautomator.backend.services.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,10 +31,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @RestController
 public class UserController {
@@ -74,12 +73,29 @@ public class UserController {
         String accessToken = wxAuthorizationService.getAccessToken();
         String orgId = wxAuthorizationService.getAuthorizedOrgId();
 
-        List<License> allLicenses = licenseService.listLicenses(accessToken, orgId);
-        Map<String, License> licenses = licenseService.makeLicensesMap(allLicenses);
+        Map<String, License> licenses = new HashMap<>();
+        ApiResponseWrapper listLicensesFromWebex = licenseService.listLicenses(accessToken, orgId);
+        if (listLicensesFromWebex.is2xxSuccess() && listLicensesFromWebex.hasData()) {
+            ListLicensesResponse listLicensesResponse = (ListLicensesResponse) listLicensesFromWebex.getData();
+            if (listLicensesResponse.hasLicenses()) {
+                licenses = licenseService.makeLicensesMap(listLicensesResponse.getItems());
+            } else {
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("The organization does not have any licenses.");
+            }
+        }
 
-        List<Location> allLocations = locationService.listLocations(accessToken, orgId);
-        Map<String, Location> locations = locationService.makeLocationsMap(allLocations);
-        // TODO check if there must be a location
+        Map<String, Location> locations = new HashMap<>();
+//        ApiResponseWrapper listLocationsFromWebex = locationService.listLocations(accessToken, orgId);
+//        if (listLocationsFromWebex.is2xxSuccess() && listLocationsFromWebex.hasData()) {
+//            ListLocationsResponse listLocationsResponse = (ListLocationsResponse) listLocationsResponse.getData();
+        //    if (listLocationsResponse.hasData()) {
+        //         locations = locationsService.makeLocationsMap(listLocationsResponse.get   )
+        //    } else {
+        //       return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("The organization does not have any locations, so no users can be assigned Webex Calling - Professional licenses.");
+        //    }
+//        }
+        // TODO there must be a location ONLY in order to assign webex calling professional
+        // TODO so probably this check should be done in the user service
 
         CustomExportUsersResponse customResponse = userService.exportUsers(file, accessToken, orgId, licenses, locations);
         if (customResponse != null) {

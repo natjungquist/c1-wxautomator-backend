@@ -28,7 +28,16 @@ public class UserMetadata {
     private String location;
 
     /**
-     * Method to get the user's phone extension.
+     * Store another license that this user should have.
+     *
+     * @param license the license the user should be assigned.
+     */
+    public void addLicense(License license) {
+        this.licenses.add(license);
+    }
+
+    /**
+     * Get the user's phone extension.
      *
      * @return String of digits representing the user's extension, or null if they don't have one.
      */
@@ -44,7 +53,7 @@ public class UserMetadata {
     }
 
     /**
-     * Method to get the user's primary work phone number.
+     * Get the user's primary work phone number.
      *
      * @return String of digits representing the user's work phone number, or null if they don't have one.
      */
