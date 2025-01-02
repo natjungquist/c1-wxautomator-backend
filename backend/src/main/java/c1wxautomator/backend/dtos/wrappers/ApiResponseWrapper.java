@@ -26,4 +26,5 @@ public class ApiResponseWrapper {
     public boolean is2xxSuccess() {
         return this.status != null && this.status >= 200 && this.status < 300;
     }
+    public boolean hasData() { return this.data != null; }
 }
