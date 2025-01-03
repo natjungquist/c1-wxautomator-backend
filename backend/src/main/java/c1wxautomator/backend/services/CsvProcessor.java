@@ -14,10 +14,12 @@ package c1wxautomator.backend.services;
 //      - Facilitates the bulk creation of users, license assignments, and other related workflows.
 
 import c1wxautomator.backend.dtos.licenses.License;
+import c1wxautomator.backend.dtos.locations.Location;
 import c1wxautomator.backend.dtos.users.UserMetadata;
 import c1wxautomator.backend.dtos.users.UserRequest;
 import c1wxautomator.backend.exceptions.CsvProcessingException;
 import c1wxautomator.backend.exceptions.LicenseNotAvailableException;
+import c1wxautomator.backend.exceptions.LocationNotAvailableException;
 import c1wxautomator.backend.exceptions.LogicalProgrammingException;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
@@ -44,8 +46,8 @@ public class CsvProcessor {
      * @throws CsvProcessingException      if there is an error processing the CSV file.
      * @throws LogicalProgrammingException if there is a logical error in the code.
      */
-    public List<UserRequest> readUsersFromCsv(MultipartFile file, Map<String, UserMetadata> usersMetadataMap, Map<String, License> licenses)
-            throws CsvProcessingException, LogicalProgrammingException, LicenseNotAvailableException {
+    public List<UserRequest> readUsersFromCsv(MultipartFile file, Map<String, UserMetadata> usersMetadataMap, Map<String, License> licenses, Map<String, Location> locations)
+            throws CsvProcessingException, LogicalProgrammingException, LicenseNotAvailableException, LocationNotAvailableException {
         List<UserRequest> userRequests = new ArrayList<>();
 
         try (InputStream inputStream = file.getInputStream();
@@ -90,8 +92,17 @@ public class CsvProcessor {
 
                 // TODO set non-extension phone numbers -
                 //  NOTE: must already be configured as a phone number at this location in order for this to work
+                // TODO check if the user's phone number matches the location phone num ?
 
-                // TODO set usermetadata location... and check if it's (1) a valid location and (2) if it matches the phone number
+                String locationInput = record.get("Location");
+                if (locationInput != null) {
+                    Location location = locations.get(locationInput);
+                    if (locations.get(location.getName()) != null) {
+                        userMetadata.setLocation(location);
+                    } else {
+                        throw new LocationNotAvailableException(String.format("Location '%s' does not exist at this organization, so it cannot be assigned to any users.", locationInput));
+                    }
+                }
 
                 userRequests.add(userRequest);
 

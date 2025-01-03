@@ -42,8 +42,6 @@ public class CustomExportUsersResponse {
     public void setError(Integer status, String message) {
         this.status = status;
         this.message = message;
-        this.totalCreateAttempts = 0;
-        this.numSuccessfullyCreated = 0;
     }
 
     public void addSuccess(Integer status, String email, String firstName, String lastName) {

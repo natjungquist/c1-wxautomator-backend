@@ -19,10 +19,7 @@ import c1wxautomator.backend.dtos.licenses.LicenseAssignmentRequest;
 import c1wxautomator.backend.dtos.locations.Location;
 import c1wxautomator.backend.dtos.users.*;
 import c1wxautomator.backend.dtos.wrappers.ApiResponseWrapper;
-import c1wxautomator.backend.exceptions.CsvProcessingException;
-import c1wxautomator.backend.exceptions.LicenseNotAvailableException;
-import c1wxautomator.backend.exceptions.LogicalProgrammingException;
-import c1wxautomator.backend.exceptions.RequestCreationException;
+import c1wxautomator.backend.exceptions.*;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -70,14 +67,14 @@ public class UserService {
         Map<String, UserMetadata> usersMetadataMap = new HashMap<>(); //key: username, value: usermetadata
         Map<String, String> bulkIdToEmailMap = new HashMap<>(); //key:bulkId, value: email/username
 
-        // Step 1: Read users from CSV and populate usersMetadataMap with users
+        // Step 1: Read users from CSV and populate users in usersMetadataMap with their userRequests, licenses, and locations
         List<UserRequest> userRequests;
         try {
-            userRequests = csvProcessor.readUsersFromCsv(file, usersMetadataMap, licenses);
+            userRequests = csvProcessor.readUsersFromCsv(file, usersMetadataMap, licenses, locations);
         } catch (LogicalProgrammingException | CsvProcessingException e) {
             response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "An error occurred processing the CSV file: " + e.getMessage());
             return response;
-        } catch (LicenseNotAvailableException e) {
+        } catch (LicenseNotAvailableException | LocationNotAvailableException e) {
             response.setError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
             return response;
         }
@@ -141,8 +138,7 @@ public class UserService {
         }
 
         if (createdUsers.isEmpty()) {  // && response.getNumSuccessfullyCreated() == createdUsers.size()
-            response.setMessage("Attempted to create users but none succeeded.");
-            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Attempted to create users but none succeeded.");
             return response;
         }
 

@@ -20,6 +20,7 @@ package c1wxautomator.backend.controllers;
 
 import c1wxautomator.backend.dtos.licenses.License;
 import c1wxautomator.backend.dtos.licenses.ListLicensesResponse;
+import c1wxautomator.backend.dtos.locations.ListLocationsResponse;
 import c1wxautomator.backend.dtos.locations.Location;
 import c1wxautomator.backend.dtos.users.CustomExportUsersResponse;
 import c1wxautomator.backend.dtos.wrappers.ApiResponseWrapper;
@@ -85,15 +86,15 @@ public class UserController {
         }
 
         Map<String, Location> locations = new HashMap<>();
-//        ApiResponseWrapper listLocationsFromWebex = locationService.listLocations(accessToken, orgId);
-//        if (listLocationsFromWebex.is2xxSuccess() && listLocationsFromWebex.hasData()) {
-//            ListLocationsResponse listLocationsResponse = (ListLocationsResponse) listLocationsResponse.getData();
-        //    if (listLocationsResponse.hasData()) {
-        //         locations = locationsService.makeLocationsMap(listLocationsResponse.get   )
-        //    } else {
-        //       return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("The organization does not have any locations, so no users can be assigned Webex Calling - Professional licenses.");
-        //    }
-//        }
+        ApiResponseWrapper listLocationsFromWebex = locationService.listLocations(accessToken, orgId);
+        if (listLocationsFromWebex.is2xxSuccess() && listLocationsFromWebex.hasData()) {
+            ListLocationsResponse listLocationsResponse = (ListLocationsResponse) listLocationsFromWebex.getData();
+            if (listLocationsResponse.hasLocations()) {
+                 locations = locationService.makeLocationsMap(listLocationsResponse.getItems());
+            } else {
+               return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("The organization does not have any locations, so no users can be assigned Webex Calling - Professional licenses.");
+            }
+        }
         // TODO there must be a location ONLY in order to assign webex calling professional
         // TODO so probably this check should be done in the user service
 

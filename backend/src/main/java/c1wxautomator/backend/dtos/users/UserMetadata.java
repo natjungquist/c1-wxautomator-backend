@@ -12,6 +12,7 @@ package c1wxautomator.backend.dtos.users;
 // This class is utilized by services that handle exporting users.
 
 import c1wxautomator.backend.dtos.licenses.License;
+import c1wxautomator.backend.dtos.locations.Location;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -25,7 +26,7 @@ public class UserMetadata {
     private String bulkId;
     private String webexId;
     private List<License> licenses = new ArrayList<>();
-    private String location;
+    private Location location;
 
     public String getFirstName() {
         if (this.userRequest.getName() == null || this.userRequest.getName().getGivenName() == null) {
@@ -49,8 +50,10 @@ public class UserMetadata {
     }
 
     public String getLocationId() {
-        return null;
-        // TODO
+        if (this.location == null || this.location.getId() == null) {
+            return "";
+        }
+        return this.location.getId();
     }
 
     /**
