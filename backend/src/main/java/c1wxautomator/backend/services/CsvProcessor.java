@@ -17,6 +17,7 @@ import c1wxautomator.backend.dtos.licenses.License;
 import c1wxautomator.backend.dtos.users.UserMetadata;
 import c1wxautomator.backend.dtos.users.UserRequest;
 import c1wxautomator.backend.exceptions.CsvProcessingException;
+import c1wxautomator.backend.exceptions.LicenseNotAvailableException;
 import c1wxautomator.backend.exceptions.LogicalProgrammingException;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
@@ -43,8 +44,8 @@ public class CsvProcessor {
      * @throws CsvProcessingException if there is an error processing the CSV file.
      * @throws LogicalProgrammingException if there is a logical error in the code.
      */
-    public List<UserRequest> readUsersFromCsv(MultipartFile file, Map<String,
-            UserMetadata> usersMetadataMap, Map<String, License> licenses) throws CsvProcessingException, LogicalProgrammingException {
+    public List<UserRequest> readUsersFromCsv(MultipartFile file, Map<String, UserMetadata> usersMetadataMap,Map<String, License> licenses)
+            throws CsvProcessingException, LogicalProgrammingException, LicenseNotAvailableException {
         List<UserRequest> userRequests = new ArrayList<>();
 
         try (InputStream inputStream = file.getInputStream();
@@ -96,12 +97,21 @@ public class CsvProcessor {
 
                 // Keep track of the licenses that users might need to be granted
                 if (record.get("Webex Contact Center Premium Agent").equalsIgnoreCase("true")) {
+                    if (licenses.get("Contact Center Premium Agent") == null) { // Handle if a license needs to be assigned but the org does not have that license
+                        throw new LicenseNotAvailableException("Contact Center Premium Agent license is not available at this organization, so it cannot be assigned to any users.");
+                    }
                     userMetadata.addLicense(licenses.get("Contact Center Premium Agent"));
                 }
                 if (record.get("Webex Contact Center Standard Agent").equalsIgnoreCase("true")) {
+                    if (licenses.get("Contact Center Standard Agent") == null) {
+                        throw new LicenseNotAvailableException("Contact Center Standard Agent license is not available at this organization, so it cannot be assigned to any users.");
+                    }
                     userMetadata.addLicense(licenses.get("Contact center Standard Agent"));  // NOTE the Webex API spells them differently (yes, this is confusing)
                 }
                 if (record.get("Webex Calling - Professional").equalsIgnoreCase("true")) {
+                    if (licenses.get("Webex Calling - Professional") == null) {
+                        throw new LicenseNotAvailableException("Webex Calling - Professional license is not available at this organization, so it cannot be assigned to any users.");
+                    }
                     userMetadata.addLicense(licenses.get("Webex Calling - Professional"));
                 }
 

@@ -39,6 +39,13 @@ public class CustomExportUsersResponse {
         return this.status != null && this.status >= 200 && this.status < 300;
     }
 
+    public void setError(Integer status, String message) {
+        this.status = status;
+        this.message = message;
+        this.totalCreateAttempts = 0;
+        this.numSuccessfullyCreated = 0;
+    }
+
     public void addSuccess(Integer status, String email, String firstName, String lastName) {
         results.add(new CreateUserResult(status, email, firstName, lastName));
         this.numSuccessfullyCreated++;
