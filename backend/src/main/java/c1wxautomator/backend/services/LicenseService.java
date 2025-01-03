@@ -32,7 +32,7 @@ public class LicenseService {
      *
      * @param accessToken The token used for authenticating the request.
      * @param orgId id of the organization to export users to.
-     * @return list of available licenses.
+     * @return ApiResponseWrapper with 'data' being a list of available licenses.
      */
     public ApiResponseWrapper listLicenses(String accessToken, String orgId) {
         ApiResponseWrapper webexResponse = new ApiResponseWrapper();
@@ -111,14 +111,14 @@ public class LicenseService {
         return licenseMap;
     }
 
-    public void assignLicenseToUser() {
+    public void assignLicenseToUser(String orgId, String userId, String userName, License license, String locationId, String extension) {
         // TODO handle if a license needs to be assigned but the org has none
 //        if (allLicenses == null || allLicenses.isEmpty()) {
 //            return ResponseEntity.status(HttpStatus.NO_CONTENT).body("There are no licenses available at your organization, so none can be assigned.");
 //        }
     }
 
-    public void removeLicenseFromUser(String userId, String orgId) {
+    public void removeLicenseFromUser(String orgId, String userId, String userName, License license) {
 
     }
 }

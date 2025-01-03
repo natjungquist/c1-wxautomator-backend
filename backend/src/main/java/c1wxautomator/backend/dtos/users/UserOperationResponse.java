@@ -26,6 +26,15 @@ public class UserOperationResponse {
     private String bulkId;
     private ErrorResponseDetails response;  // This field will only be set if there is an error
 
+    public String getWebexErrorMessage() {
+        if (this.response == null || this.response.getErrorDetails() == null || this.response.getErrorDetails().getDetails() == null) {
+            return "";
+        }
+        return this.response.getErrorDetails().getDetails();
+    }
+
+    @Setter
+    @Getter
     public static class ErrorResponseDetails {
         private List<String> schemas;
         private String status;
@@ -33,6 +42,8 @@ public class UserOperationResponse {
         @JsonProperty("urn:scim:schemas:extension:cisco:webexidentity:api:messages:2.0:Error")
         private ErrorDetails errorDetails;
 
+        @Setter
+        @Getter
         public static class ErrorDetails {
             private String trackingId;
             private String errorCode;

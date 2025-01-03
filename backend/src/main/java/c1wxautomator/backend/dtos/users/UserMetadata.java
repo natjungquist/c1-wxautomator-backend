@@ -23,9 +23,33 @@ import java.util.List;
 public class UserMetadata {
     private UserRequest userRequest;
     private String bulkId;
-    private Integer webexId;
+    private String webexId;
     private List<License> licenses = new ArrayList<>();
     private String location;
+
+    public String getFirstName() {
+        if (this.userRequest.getName() == null || this.userRequest.getName().getGivenName() == null) {
+            return "";
+        }
+        return this.userRequest.getName().getGivenName();
+    }
+    public String getLastName() {
+        if (this.userRequest.getName() == null || this.userRequest.getName().getFamilyName() == null) {
+            return "";
+        }
+        return this.userRequest.getName().getFamilyName();
+    }
+    public String getEmail() {
+        if (this.userRequest.getEmail() == null) {
+            return "";
+        }
+        return this.userRequest.getEmail();
+    }
+
+    public String getLocationId() {
+        return null;
+        // TODO
+    }
 
     /**
      * Store another license that this user should have.

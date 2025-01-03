@@ -17,6 +17,7 @@ package c1wxautomator.backend.dtos.users;
 // This class is intended to be used in services and controllers that export users to Webex.
 // Controllers will send this as the response body to the client.
 
+import c1wxautomator.backend.dtos.licenses.License;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
@@ -29,45 +30,47 @@ import java.util.List;
 @NoArgsConstructor
 public class CustomExportUsersResponse {
     private Integer status;
+    private Integer totalCreateAttempts;
+    private Integer numSuccessfullyCreated;
     private String message;
-    private List<SuccessResult> successes = new ArrayList<>();
-    private List<FailureResult> failures = new ArrayList<>();
+    private List<CreateUserResult> results = new ArrayList<>();
 
     public boolean is2xxSuccess() {
         return this.status != null && this.status >= 200 && this.status < 300;
     }
 
-    public void addSuccess(String bulkId, String username) {
-        successes.add(new SuccessResult(bulkId, username));
+    public void addSuccess(Integer status, String email, String firstName, String lastName) {
+        results.add(new CreateUserResult(status, email, firstName, lastName));
+        this.numSuccessfullyCreated++;
     }
 
-    public void addFailure(String bulkId, String username, String errorDetail) {
-        failures.add(new FailureResult(bulkId, username, errorDetail));
+    public void addFailure(Integer status, String email, String firstName, String lastName, String message) {
+        results.add(new CreateUserResult(status, email, firstName, lastName, message));
     }
 
     @Getter
     @Setter
-    public static class SuccessResult {
-        private String bulkId;
-        private String username;
+    public static class CreateUserResult {
+        private Integer status;
+        private String message;
+        private String email;
+        private String firstName;
+        private String lastName;
+        private List<License> licenses = new ArrayList<>();
 
-        public SuccessResult(String bulkId, String username) {
-            this.bulkId = bulkId;
-            this.username = username;
+        public CreateUserResult(Integer status, String email, String firstName, String lastName) {
+            this.status = status;
+            this.email = email;
+            this.firstName = firstName;
+            this.lastName = lastName;
+            // TODO ??? super or no??
         }
-    }
-
-    @Getter
-    @Setter
-    public static class FailureResult {
-        private String bulkId;
-        private String username;
-        private String errorDetail;
-
-        public FailureResult(String bulkId, String username, String errorDetail) {
-            this.bulkId = bulkId;
-            this.username = username;
-            this.errorDetail = errorDetail;
+        public CreateUserResult(Integer status, String email, String firstName, String lastName, String message) {
+            this.status = status;
+            this.email = email;
+            this.firstName = firstName;
+            this.lastName = lastName;
+            this.message = message;
         }
     }
 }

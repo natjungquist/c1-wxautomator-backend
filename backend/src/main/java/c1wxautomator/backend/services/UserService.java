@@ -29,13 +29,18 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVRecord;
-
-import java.io.*;
-
 @Service
 public class UserService {
+
+    private final LicenseService licenseService;
+    private final UserGetter userGetter;
+    private final CsvProcessor csvProcessor;
+
+    public UserService(LicenseService licenseService, UserGetter userGetter, CsvProcessor csvProcessor) {
+        this.licenseService = licenseService;
+        this.userGetter = userGetter;
+        this.csvProcessor = csvProcessor;
+    }
 
     /**
      * Exports users from the uploaded CSV file and creates them via the Webex API.
@@ -60,19 +65,24 @@ public class UserService {
 
         // These maps store extra information about the users. This info is separate because creating the user must be done first.
         // After the user is created, this info is need for further operations on the user.
-        Map<String, UserMetadata> usersMetadataMap = new HashMap<>();
+        Map<String, UserMetadata> usersMetadataMap = new HashMap<>(); //key: username, value: usermetadata
+        Map<String, String> bulkIdToEmailMap = new HashMap<>(); //key:bulkId, value: email/username
 
         // Step 1: Read users from CSV and populate usersMetadataMap with users
         List<UserRequest> userRequests;
         try {
-            userRequests = readUsersFromCsv(file, usersMetadataMap, licenses);
+            userRequests = csvProcessor.readUsersFromCsv(file, usersMetadataMap, licenses);
         } catch (LogicalProgrammingException | CsvProcessingException e) {
+            response.setTotalCreateAttempts(0);
+            response.setNumSuccessfullyCreated(0);
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             response.setMessage("An error occurred processing the CSV file: " + e.getMessage());
             return response;
         }
 
         if (userRequests.isEmpty()) {
+            response.setTotalCreateAttempts(0);
+            response.setNumSuccessfullyCreated(0);
             response.setStatus(HttpStatus.BAD_REQUEST.value());
             response.setMessage("An error occurred processing the CSV file: no users found.");
         }
@@ -80,8 +90,10 @@ public class UserService {
         // Step 2: Create BulkRequest and set bulkIds to usersMetadata
         UserBulkRequest bulkRequest;
         try {
-            bulkRequest = createBulkRequest(userRequests, usersMetadataMap);
+            bulkRequest = createBulkRequest(userRequests, usersMetadataMap, bulkIdToEmailMap);
         } catch (RequestCreationException e) {
+            response.setTotalCreateAttempts(0);
+            response.setNumSuccessfullyCreated(0);
             response.setStatus(HttpStatus.BAD_REQUEST.value());
             response.setMessage("An error occurred processing the data for exporting users: " + e.getMessage());
             return response;
@@ -92,6 +104,8 @@ public class UserService {
 
         // if the call to the Webex API was not successful, send the error status and message back to client
         if (!webexResponse.is2xxSuccess()) {
+            response.setTotalCreateAttempts(0);
+            response.setNumSuccessfullyCreated(0);
             response.setStatus(webexResponse.getStatus());
             response.setMessage(webexResponse.getMessage());
             return response;
@@ -101,105 +115,81 @@ public class UserService {
 
 
         // Step 5: Assign licenses
-        if (webexResponse.hasData()) {
+        List<UserMetadata> createdUsers = new ArrayList<>();
+
+        if (webexResponse.is2xxSuccess() && webexResponse.hasData()) {
             UserBulkResponse userBulkResponse = (UserBulkResponse) webexResponse.getData();
             if (userBulkResponse.hasOperations()) {
-                // TODO working on assigning 11am 1/2/25
+                // TODO
+                List<UserOperationResponse> operations = userBulkResponse.getOperations();  // Extract operations from the response
+                for (UserOperationResponse operation : operations) {
+                    // Using the bulk id from the response to get the email/username and other user data
+                    String bulkId = operation.getBulkId();
+                    String email = bulkIdToEmailMap.get(bulkId);
+                    UserMetadata userMetadata = usersMetadataMap.get(email);
+                    String firstName = userMetadata.getFirstName();
+                    String lastName = userMetadata.getLastName();
+
+                    switch (operation.getStatus()) {
+                        case "201" -> {    // NOTE: Must hardcode the values as strings because that is how Webex API responds
+                            response.addSuccess(201, email, firstName, lastName);
+                            createdUsers.add(userMetadata);
+                        }
+                        case "200" ->
+                                response.addFailure(200, email, firstName, lastName, "Webex API did not perform an operation for this user.");
+                        case "400" -> {
+                            String errorMessage = operation.getWebexErrorMessage();
+                            response.addFailure(400, email, firstName, lastName, errorMessage);
+                        }
+                        case "409" -> {
+                            String errorMessage = operation.getWebexErrorMessage();
+                            response.addFailure(409, email, firstName, lastName, errorMessage);
+                        }
+                        case null, default -> {
+                            String errorMessage = operation.getWebexErrorMessage();
+                            response.addFailure(500, email, firstName, lastName, errorMessage);
+                            // TODO
+                        }
+                    }
+                }
+
+                // Need to call the API to get the ids of the users at the organization. The ids are needed to assign licenses, but only accessible this way.
+                ApiResponseWrapper searchUsersResponse = userGetter.searchUsers(accessToken, orgId);
+                if (searchUsersResponse.is2xxSuccess() && searchUsersResponse.hasData()) {
+                    SearchUsersResponse searchUsersData = (SearchUsersResponse) searchUsersResponse.getData();
+//                    List<Object> allUsers = searchUsersData.getResources();
+//                    for (Object user : allUsers) {
+//                        String id = user.getId();
+//                        String email = user.getEmail();  // TODO make sure this works cus the field is called userName on the webex side
+//                        UserMetadata userMetadata = usersMetadataMap.get(email);
+//                        userMetadata.setWebexId(id);
+//                    }
+                }
+
+                for (UserMetadata createdUser : createdUsers) {
+                    // TODO assign licenses
+                    // TODO if license assignment succeeds:
+                    // TODO else:
+                    String id = createdUser.getWebexId();
+                    String email = createdUser.getEmail();
+                    String locationId = createdUser.getLocationId();
+                }
+
+            } else {
+                response.setTotalCreateAttempts(0);
+                response.setNumSuccessfullyCreated(0);
+                response.setStatus(HttpStatus.NOT_IMPLEMENTED.value());
+                response.setMessage("An error occurred: Webex did not perform any operations to create users.");
+                return response;
             }
+        } else {
+            // TODO
         }
 
         // Step 6: Create custom response body to send to client
 
         response.setStatus(HttpStatus.OK.value());
         return response;
-    }
-
-    /**
-     * Reads user data from the CSV file and:
-     * 1. maps the information to UserRequest objects.
-     * 2. tracks licenses for each user in UserMetadata objects, populating usersMetadataMap.
-     *
-     * @param file the CSV file to read.
-     * @return List of UserRequest objects created from the CSV file, else a custom exception class if there is an error.
-     * @throws CsvProcessingException if there is an error processing the CSV file.
-     * @throws LogicalProgrammingException if there is a logical error in the code.
-     */
-    private List<UserRequest> readUsersFromCsv(MultipartFile file, Map<String,
-            UserMetadata> usersMetadataMap, Map<String, License> licenses) throws CsvProcessingException, LogicalProgrammingException {
-        List<UserRequest> userRequests = new ArrayList<>();
-
-        try (InputStream inputStream = file.getInputStream();
-             Reader reader = new InputStreamReader(inputStream)) {
-
-            // Use CSVFormat.Builder to configure headers and skipping the header record
-            CSVFormat csvFormat = CSVFormat.Builder.create()
-                    .setHeader() // Indicates the first row contains the header
-                    .setSkipHeaderRecord(true) // Skip the header row in iteration
-                    .build();
-
-            Iterable<CSVRecord> records = csvFormat.parse(reader);
-
-            for (CSVRecord record : records) {
-                // Parse the rest of the records and set them to UserRequest objects
-                UserRequest userRequest = new UserRequest();
-                UserMetadata userMetadata = new UserMetadata();
-
-                userRequest.setDisplayName(record.get("Display Name"));
-
-                UserRequest.Name name = new UserRequest.Name();
-                name.setGivenName(record.get("First Name"));
-                name.setFamilyName(record.get("Last Name"));
-                userRequest.setName(name);
-
-                userRequest.setEmail(record.get("Email"));  // The email column of the csv file corresponds to the userName field for the request
-
-                userRequest.setActive(record.get("Status").equalsIgnoreCase("active"));
-
-                List<String> userSchemas = new ArrayList<>(List.of(
-                        "urn:ietf:params:scim:schemas:core:2.0:User",
-                        "urn:scim:schemas:extension:cisco:webexidentity:2.0:User",
-                        "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
-                ));
-                userRequest.setSchemas(userSchemas);
-
-                if (record.get("Extension") != null) {
-                  // TODO MAKE SURE THE EXTENSION IS A NUMBER AND
-                  // TODO make sure the extension does not already exist
-                    userRequest.addPrimaryExtension((record.get("Extension")));
-                }
-
-                // TODO set non-extension phone numbers -
-                //  NOTE: must already be configured as a phone number at this location in order for this to work
-
-                // TODO set usermetadata location... and check if it's (1) a valid location and (2) if it matches the phone number
-
-                userRequests.add(userRequest);
-
-                // Keep track of the licenses that users might need to be granted
-                if (record.get("Webex Contact Center Premium Agent").equalsIgnoreCase("true")) {
-                    userMetadata.addLicense(licenses.get("Contact Center Premium Agent"));
-                }
-                if (record.get("Webex Contact Center Standard Agent").equalsIgnoreCase("true")) {
-                    userMetadata.addLicense(licenses.get("Contact center Standard Agent"));  // NOTE the Webex API spells them differently (yes, this is confusing)
-                }
-                if (record.get("Webex Calling - Professional").equalsIgnoreCase("true")) {
-                    userMetadata.addLicense(licenses.get("Webex Calling - Professional"));
-                }
-
-                userMetadata.setUserRequest(userRequest);
-                usersMetadataMap.put(userRequest.getEmail(), userMetadata);
-            }
-        } catch (IOException e) {
-            throw new CsvProcessingException("An error occurred processing the CSV file: " + e.getMessage());
-        }
-        // TODO also catch exceptions if there is undesirable data in the CSV file
-
-        // The usersMetadataMap should hold all the same users as the userRequests list
-        if (usersMetadataMap.size() != userRequests.size()) {
-            throw new LogicalProgrammingException("Logical error: usersMetadataMap size does not match userRequests size.");
-        } else {
-            return userRequests;
-        }
     }
 
     /**
@@ -212,8 +202,8 @@ public class UserService {
      * @return A UserBulkRequest object representing the bulk creation request.
      * @throws RequestCreationException if there are no users to in the bulk request.
      */
-    private UserBulkRequest createBulkRequest(List<UserRequest> userRequests,
-                                              Map<String, UserMetadata> usersMetadataMap) throws RequestCreationException {
+    private UserBulkRequest createBulkRequest(List<UserRequest> userRequests, Map<String, UserMetadata> usersMetadataMap, 
+                                              Map<String, String> bulkIdToEmailMap) throws RequestCreationException {
         if (userRequests == null || userRequests.isEmpty()) {
             throw new RequestCreationException("Error occurred assembling user data: no users found.");
         }
@@ -233,6 +223,7 @@ public class UserService {
             String bulkId = "user-" + counter++;
             UserMetadata currentUserMetadata = usersMetadataMap.get(userRequest.getEmail());
             currentUserMetadata.setBulkId(bulkId);
+            bulkIdToEmailMap.put(bulkId, userRequest.getEmail());
 
             UserOperationRequest operation = new UserOperationRequest();
             operation.setMethod("POST");
@@ -318,10 +309,7 @@ public class UserService {
         }
     }
 
-    private SearchUsersResponse searchUsers(String accessToken, String orgId) {
-        return null;
-    }
-
+    // TODO
     private boolean isValidExtension(String extension) {
         return false;
     }
@@ -332,17 +320,10 @@ public class UserService {
 //     * about the success or failure of each user operation.
 //     *
 //     * @param webexResponse the Webex API response body containing the bulk user creation results.
-//     * @param bulkIdToUsernameMap a map to relate bulk operation IDs to usernames.
+//     * @param bulkIdToEmailMap a map to relate bulk operation IDs to usernames.
 //     * @return CustomExportUsersResponse containing the processed response details.
 //     */
-//    private CustomExportUsersResponse processWebexResponse(UserBulkResponse webexResponse, Map<String, String> bulkIdToUsernameMap) {
-//
-//            List<UserOperationResponse> operations = bulkResponse.getOperations();  // Extract operations from the response
-//
-//            if (operations == null || operations.isEmpty()) {
-//            // no operations were performed
-//            }
-//
+//    private CustomExportUsersResponse processWebexResponse(UserBulkResponse webexResponse, Map<String, String> bulkIdToEmailMap) {
 //        return
 //    }
 }
