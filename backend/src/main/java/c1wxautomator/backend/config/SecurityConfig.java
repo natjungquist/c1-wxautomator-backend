@@ -44,6 +44,7 @@ public class SecurityConfig {
      * Configures various aspects of the security filter chain for an application,
      * including CSRF protection, CORS configuration, request authorization, OAuth2 login, and
      * logout behavior.
+     *
      * @param http the HttpSecurity object to configure
      * @return the configured SecurityFilterChain object
      * @throws Exception if an error occurs while configuring the HttpSecurity object
@@ -75,6 +76,7 @@ public class SecurityConfig {
     /**
      * Sets up the CORS configuration to allow requests only from the specified frontend URL.
      * It permits all headers, supports various HTTP methods, and allows credentials to be included in requests.
+     *
      * @return the configured CorsConfigurationSource object
      */
     @Bean

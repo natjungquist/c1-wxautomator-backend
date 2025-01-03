@@ -53,8 +53,4 @@ public class LocationService {
         }
         return locationMap;
     }
-
-    public void getLocation(String locationName) {
-
-    }
 }

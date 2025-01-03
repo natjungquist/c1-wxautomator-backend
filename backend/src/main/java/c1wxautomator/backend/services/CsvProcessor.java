@@ -41,10 +41,10 @@ public class CsvProcessor {
      *
      * @param file the CSV file to read.
      * @return List of UserRequest objects created from the CSV file, else a custom exception class if there is an error.
-     * @throws CsvProcessingException if there is an error processing the CSV file.
+     * @throws CsvProcessingException      if there is an error processing the CSV file.
      * @throws LogicalProgrammingException if there is a logical error in the code.
      */
-    public List<UserRequest> readUsersFromCsv(MultipartFile file, Map<String, UserMetadata> usersMetadataMap,Map<String, License> licenses)
+    public List<UserRequest> readUsersFromCsv(MultipartFile file, Map<String, UserMetadata> usersMetadataMap, Map<String, License> licenses)
             throws CsvProcessingException, LogicalProgrammingException, LicenseNotAvailableException {
         List<UserRequest> userRequests = new ArrayList<>();
 

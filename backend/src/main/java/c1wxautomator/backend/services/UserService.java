@@ -112,87 +112,85 @@ public class UserService {
 
 
         // Step 5: Assign licenses
+        UserBulkResponse userBulkResponse = (UserBulkResponse) webexResponse.getData();
+        if (!userBulkResponse.hasOperations()) {
+            response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error: Webex did not perform any operations to create users.");
+            return response;
+        }
+
         List<UserMetadata> createdUsers = new ArrayList<>();
 
+        List<UserOperationResponse> operations = userBulkResponse.getOperations();  // Extract operations from the response
+        for (UserOperationResponse operation : operations) {
+            // Using the bulk id from the response to get the email/username and other user data
+            String bulkId = operation.getBulkId();
+            String email = bulkIdToEmailMap.get(bulkId);
+            UserMetadata userMetadata = usersMetadataMap.get(email);
+            String firstName = userMetadata.getFirstName();
+            String lastName = userMetadata.getLastName();
 
-        UserBulkResponse userBulkResponse = (UserBulkResponse) webexResponse.getData();
-        if (userBulkResponse.hasOperations()) {
-            List<UserOperationResponse> operations = userBulkResponse.getOperations();  // Extract operations from the response
-            for (UserOperationResponse operation : operations) {
-                // Using the bulk id from the response to get the email/username and other user data
-                String bulkId = operation.getBulkId();
-                String email = bulkIdToEmailMap.get(bulkId);
-                UserMetadata userMetadata = usersMetadataMap.get(email);
-                String firstName = userMetadata.getFirstName();
-                String lastName = userMetadata.getLastName();
-
-                if (operation.getStatus().equals("201")) { // NOTE: Must hardcode the values as strings because that is how Webex API responds
-                    response.addSuccess(201, email, firstName, lastName);
-                    createdUsers.add(userMetadata);
-                } else if (operation.getStatus().equals("200")) {
-                    response.addFailure(200, email, firstName, lastName, "Webex API did not perform an operation for this user.");
-                } else if (operation.getStatus().equals("400")) {
-                    String errorMessage = operation.getWebexErrorMessage();
-                    response.addFailure(400, email, firstName, lastName, errorMessage);
-                } else if (operation.getStatus().equals("409")) {
-                    String errorMessage = operation.getWebexErrorMessage();
-                    response.addFailure(409, email, firstName, lastName, errorMessage);
-                } else {
-                    String errorMessage = operation.getWebexErrorMessage();
-                    response.addFailure(500, email, firstName, lastName, errorMessage);
-                    // TODO see what other errors could happen here
-                }
-            }
-
-            // Need to call the API to get the ids of the users at the organization. The ids are needed to assign licenses, but only accessible this way.
-            ApiResponseWrapper searchUsersResponse = userGetter.searchUsers(accessToken, orgId);
-            if (searchUsersResponse.is2xxSuccess() && searchUsersResponse.hasData()) {
-                SearchUsersResponse searchUsersData = (SearchUsersResponse) searchUsersResponse.getData();
-                List<SearchUsersResponse.Resource> allUsers = searchUsersData.getResources();
-                if (allUsers != null) {
-                    for (SearchUsersResponse.Resource user : allUsers) {
-                        String email = user.getUserName();
-                        UserMetadata userMetadata = usersMetadataMap.get(email);
-                        if (userMetadata == null) { // If the user is not in usersMetadataMap, it was not just now created, so it can be discarded.
-                            continue;
-                        }
-                        String id = user.getId();
-                        userMetadata.setWebexId(id);
-                    }
-                }
+            if (operation.getStatus().equals("201")) { // NOTE: Must hardcode the values as strings because that is how Webex API responds
+                response.addSuccess(201, email, firstName, lastName);
+                createdUsers.add(userMetadata);
+            } else if (operation.getStatus().equals("200")) {
+                response.addFailure(200, email, firstName, lastName, "Webex API returned 200 but did not create this user. Does it already exist?");
             } else {
-                // TODO
+                String errorMessage = String.format("Webex API responded with '%s' because a user with this email already exists.", operation.getWebexErrorMessage());
+                response.addFailure(Integer.parseInt(operation.getStatus()), email, firstName, lastName, errorMessage);
             }
+        }
 
-            for (UserMetadata createdUser : createdUsers) {
-                String id = createdUser.getWebexId();
-                String email = createdUser.getEmail();
-                String locationId = createdUser.getLocationId();
-                String extension = createdUser.getExtension();
-                for (License license : createdUser.getLicenses()) {
-                    LicenseAssignmentRequest licenseRequest = licenseService.createLicenseRequest(email, orgId, id, license, "add", locationId, extension);
-                    ApiResponseWrapper licenseResponse = licenseService.assignLicenseToUser(accessToken, orgId, licenseRequest);
-                    if (licenseResponse.is2xxSuccess() && licenseResponse.hasData()) {
-
-                    } else {
-                        response.setTotalCreateAttempts(0);
-                        response.setNumSuccessfullyCreated(0);
-                        response.setStatus(licenseResponse.getStatus());
-                        response.setMessage(licenseResponse.getMessage());
-                    }
-                }
-                // TODO if license succeeds vs fails
-            }
-
-        } else {
-            response.setError(HttpStatus.NOT_IMPLEMENTED.value(), "An error occurred: Webex did not perform any operations to create users.")
+        if (createdUsers.isEmpty()) {  // && response.getNumSuccessfullyCreated() == createdUsers.size()
+            response.setMessage("Attempted to create users but none succeeded.");
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             return response;
+        }
+
+        // Need to call the API to get the ids of the users at the organization. The ids are needed to assign licenses, but only accessible this way.
+        ApiResponseWrapper searchUsersResponse = userGetter.searchUsers(accessToken, orgId);
+        if (searchUsersResponse.is2xxSuccess() && searchUsersResponse.hasData()) {
+            SearchUsersResponse searchUsersData = (SearchUsersResponse) searchUsersResponse.getData();
+            List<SearchUsersResponse.Resource> allUsers = searchUsersData.getResources();
+            if (allUsers != null) {
+                for (SearchUsersResponse.Resource user : allUsers) {
+                    String email = user.getUserName();
+                    UserMetadata userMetadata = usersMetadataMap.get(email);
+                    if (userMetadata == null) { // If the user is not in usersMetadataMap, it was not just now created, so it can be discarded.
+                        continue;
+                    }
+                    String id = user.getId();
+                    userMetadata.setWebexId(id);
+                }
+            }
+        } else {
+            // TODO
+            response.setMessage("Error getting any user IDs. No licenses were assigned.");
+            return response;
+        }
+
+        for (UserMetadata createdUser : createdUsers) {
+            String id = createdUser.getWebexId();
+            String email = createdUser.getEmail();
+            String locationId = createdUser.getLocationId();
+            String extension = createdUser.getExtension();
+            for (License license : createdUser.getLicenses()) {
+                LicenseAssignmentRequest licenseRequest = licenseService.createLicenseRequest(email, orgId, id, license, "add", locationId, extension);
+                ApiResponseWrapper licenseResponse = licenseService.sendLicenseRequest(accessToken, orgId, licenseRequest);
+                if (licenseResponse.is2xxSuccess() && licenseResponse.hasData()) {
+                    // TODO if license succeeds
+                } else {
+                    // TODO
+                    response.setMessage("");
+                    return response;
+                }
+            }
+
         }
 
 
         // Step 6: Create custom response body to send to client
 
-        response.setStatus(HttpStatus.OK.value());
+
         return response;
     }
 

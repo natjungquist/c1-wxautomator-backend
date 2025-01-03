@@ -33,12 +33,14 @@ public class UserMetadata {
         }
         return this.userRequest.getName().getGivenName();
     }
+
     public String getLastName() {
         if (this.userRequest.getName() == null || this.userRequest.getName().getFamilyName() == null) {
             return "";
         }
         return this.userRequest.getName().getFamilyName();
     }
+
     public String getEmail() {
         if (this.userRequest.getEmail() == null) {
             return "";

@@ -45,9 +45,9 @@ public class OrganizationService {
     /**
      * Fetches the details of the organization using an access token and the orgId.
      * Note that as of 1/1/2025, the orgId returned by Webex's 'list organizations' endpoint
-     *      is not the same as the orgId needed to make API calls for provisioning.
-     *      The orgId needed to make calls for provisioning is provided in the authorization code
-     *      which is set/stored by this application's wxAuthenticationService.
+     * is not the same as the orgId needed to make API calls for provisioning.
+     * The orgId needed to make calls for provisioning is provided in the authorization code
+     * which is set/stored by this application's wxAuthenticationService.
      *
      * @param accessToken The token used for authenticating the request.
      * @return custom ApiResponseWrapper object where 'status' is the status of the response from
@@ -64,7 +64,7 @@ public class OrganizationService {
      * Calls Webex API to get details of a specific organization, specified by id.
      *
      * @param accessToken The token used for authenticating the request.
-     * @param orgId id of the organization to get the details of.
+     * @param orgId       id of the organization to get the details of.
      * @return custom ApiResponseWrapper object where 'status' is the status of the response from
      * the call to the Webex API and 'data' is the organization details or null if there is an error.
      */
@@ -120,7 +120,8 @@ public class OrganizationService {
             webexResponse.setStatus(HttpStatus.SERVICE_UNAVAILABLE.value());
             webexResponse.setMessage("Error accessing Webex API when trying to get organization details: " + e.getMessage());
             return webexResponse;
-        } catch (RestClientException e) { // These occur when the response body cannot be converted to the desired object type.
+        } catch (
+                RestClientException e) { // These occur when the response body cannot be converted to the desired object type.
             //and all other runtime exceptions within the RestTemplate.
             // Examples: Mismatched response structure, Parsing errors, Incorrect use of
             // ParameterizedTypeReference, Invalid request or URL, Method not allowed
@@ -132,6 +133,7 @@ public class OrganizationService {
 
     /**
      * Builds an Organization response entity
+     *
      * @param responseBody A response from an external API call
      * @return custom object with all fields set, else null
      */

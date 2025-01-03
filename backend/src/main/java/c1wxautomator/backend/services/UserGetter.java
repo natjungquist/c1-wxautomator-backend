@@ -22,7 +22,7 @@ public class UserGetter {
      * Calls the Webex API to get a list of users at an organization.
      *
      * @param accessToken The token used for authenticating the request.
-     * @param orgId id of the organization to export users to.
+     * @param orgId       id of the organization to export users to.
      * @return ApiResponseWrapper with 'data' being a list of users at the organization.
      */
     public ApiResponseWrapper searchUsers(String accessToken, String orgId) {
@@ -39,7 +39,8 @@ public class UserGetter {
 
         try {
             ResponseEntity<SearchUsersResponse> response = restTemplate.exchange(URL, HttpMethod.GET,
-                    requestEntity, new ParameterizedTypeReference<>() {});
+                    requestEntity, new ParameterizedTypeReference<>() {
+                    });
             if (response.getStatusCode().is2xxSuccessful()) {
                 SearchUsersResponse searchUsers = response.getBody();
                 webexResponse.setData(searchUsers);
@@ -71,7 +72,8 @@ public class UserGetter {
             webexResponse.setMessage("Error accessing Webex API when trying to retrieve users: " + e.getMessage());
             return webexResponse;
 
-        } catch (RestClientException e) { // These occur when the response body cannot be converted to the desired object type.
+        } catch (
+                RestClientException e) { // These occur when the response body cannot be converted to the desired object type.
             //and all other runtime exceptions within the RestTemplate.
             // Examples: Mismatched response structure, Parsing errors, Incorrect use of
             // ParameterizedTypeReference, Invalid request or URL, Method not allowed

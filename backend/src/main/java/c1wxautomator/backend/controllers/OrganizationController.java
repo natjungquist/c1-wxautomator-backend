@@ -43,6 +43,7 @@ public class OrganizationController {
 
     /**
      * Endpoint for returning a specific organization's details.
+     *
      * @return ResponseEntity containing the organization details.
      */
     @GetMapping("/my-organization")
@@ -66,6 +67,7 @@ public class OrganizationController {
 
     /**
      * Endpoint for returning the authorized user display name.
+     *
      * @return ResponseEntity as json containing the user display name.
      */
     @GetMapping("/my-name")

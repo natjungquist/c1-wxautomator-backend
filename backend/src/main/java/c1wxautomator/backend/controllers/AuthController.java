@@ -35,6 +35,7 @@ public class AuthController {
 
     /**
      * Endpoint to validate if the user is logged in or not.
+     *
      * @return ResponseEntity as json containing true or false
      */
     @GetMapping("/check-auth")

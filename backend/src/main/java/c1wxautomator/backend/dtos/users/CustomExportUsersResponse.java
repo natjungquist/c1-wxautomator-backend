@@ -30,8 +30,8 @@ import java.util.List;
 @NoArgsConstructor
 public class CustomExportUsersResponse {
     private Integer status;
-    private Integer totalCreateAttempts;
-    private Integer numSuccessfullyCreated;
+    private Integer totalCreateAttempts = 0;
+    private Integer numSuccessfullyCreated = 0;
     private String message;
     private List<CreateUserResult> results = new ArrayList<>();
 
@@ -49,10 +49,12 @@ public class CustomExportUsersResponse {
     public void addSuccess(Integer status, String email, String firstName, String lastName) {
         results.add(new CreateUserResult(status, email, firstName, lastName));
         this.numSuccessfullyCreated++;
+        this.totalCreateAttempts++;
     }
 
     public void addFailure(Integer status, String email, String firstName, String lastName, String message) {
         results.add(new CreateUserResult(status, email, firstName, lastName, message));
+        this.totalCreateAttempts++;
     }
 
     @Getter
@@ -70,8 +72,8 @@ public class CustomExportUsersResponse {
             this.email = email;
             this.firstName = firstName;
             this.lastName = lastName;
-            // TODO ??? super or no??
         }
+
         public CreateUserResult(Integer status, String email, String firstName, String lastName, String message) {
             this.status = status;
             this.email = email;
