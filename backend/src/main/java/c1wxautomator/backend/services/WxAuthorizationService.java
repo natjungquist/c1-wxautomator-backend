@@ -36,6 +36,7 @@ public class WxAuthorizationService {
 
     /**
      * Retrieves the OAuth2 access token for the authenticated user.
+     *
      * @return the access token as a String, or null if not available
      */
     public String getAccessToken() {
@@ -54,6 +55,7 @@ public class WxAuthorizationService {
 
     /**
      * Retrieves the OAuth2 user details for the authenticated user.
+     *
      * @return the user's name as a String, or null if not available
      */
     public String getUserDisplayName() {

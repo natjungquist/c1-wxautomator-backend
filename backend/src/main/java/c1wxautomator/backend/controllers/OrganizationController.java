@@ -43,14 +43,15 @@ public class OrganizationController {
 
     /**
      * Endpoint for returning a specific organization's details.
+     *
      * @return ResponseEntity containing the organization details.
      */
     @GetMapping("/my-organization")
     public ResponseEntity<?> getMyOrganizationDetails() {
         String accessToken = wxAuthorizationService.getAccessToken();
         if (accessToken != null) {
-            ApiResponseWrapper webexResponse = organizationService.getOrganizationDetails(accessToken);
-            if (webexResponse.is2xxSuccess()) {
+            ApiResponseWrapper webexResponse = organizationService.getMyOrganizationDetails(accessToken);
+            if (webexResponse.is2xxSuccess() && webexResponse.hasData()) {
                 OrganizationDetailsResponse organizationDetailsResponse = (OrganizationDetailsResponse) webexResponse.getData();
                 return ResponseEntity.ok(organizationDetailsResponse);
             } else {
@@ -66,6 +67,7 @@ public class OrganizationController {
 
     /**
      * Endpoint for returning the authorized user display name.
+     *
      * @return ResponseEntity as json containing the user display name.
      */
     @GetMapping("/my-name")
