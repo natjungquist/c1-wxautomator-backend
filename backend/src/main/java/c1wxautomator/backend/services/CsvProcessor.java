@@ -74,6 +74,7 @@ public class CsvProcessor {
                 userRequest.setName(name);
 
                 userRequest.setEmail(record.get("Email"));  // The email column of the csv file corresponds to the userName field for the request
+                // TODO make sure the domain is registered... check what the API responds if it's not registered
 
                 userRequest.setActive(record.get("Status").equalsIgnoreCase("active"));
 
@@ -85,8 +86,11 @@ public class CsvProcessor {
                 userRequest.setSchemas(userSchemas);
 
                 if (record.get("Extension") != null) {
-                    // TODO MAKE SURE THE EXTENSION IS A NUMBER AND
-                    // TODO make sure the extension does not already exist
+                    try {
+                        Integer.parseInt(record.get("Extension")); // Proceed knowing the extension is a valid number
+                    } catch (NumberFormatException e) { // Handle the case where the extension is not a number
+                        throw new CsvProcessingException("At least one record in the CSV is not a valid number. No users have been created.");
+                    }
                     userRequest.addPrimaryExtension((record.get("Extension")));
                 }
 
@@ -97,7 +101,7 @@ public class CsvProcessor {
                 String locationInput = record.get("Location");
                 if (locationInput != null) {
                     Location location = locations.get(locationInput);
-                    if (locations.get(location.getName()) != null) {
+                    if (location != null && locations.get(location.getName()) != null) {
                         userMetadata.setLocation(location);
                     } else {
                         throw new LocationNotAvailableException(String.format("Location '%s' does not exist at this organization, so it cannot be assigned to any users.", locationInput));
