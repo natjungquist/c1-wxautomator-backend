@@ -118,7 +118,7 @@ public class CsvProcessor {
                     userMetadata.addLicense(licenses.get("Contact Center Premium Agent"));
                 }
                 if (record.get("Webex Contact Center Standard Agent").equalsIgnoreCase("true")) {
-                    if (licenses.get("Contact Center Standard Agent") == null) {
+                    if (licenses.get("Contact center Standard Agent") == null) { // yes the c is lowercase
                         throw new LicenseNotAvailableException("Contact Center Standard Agent license is not available at this organization, so it cannot be assigned to any users.");
                     }
                     userMetadata.addLicense(licenses.get("Contact center Standard Agent"));  // NOTE the Webex API spells them differently (yes, this is confusing)
