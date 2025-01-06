@@ -15,7 +15,15 @@ import java.util.List;
 @Getter
 public class AssignLicenseResponse {
     private String orgId;
-    private String personId;
+    private String personId;  // called webexId elsewhere
     private String email;
-    private List<License> licenses;
+    private List<String> licenses;
+    private List<SiteUrl> siteUrls;
+
+    @Setter
+    @Getter
+    public static class SiteUrl {
+        private String siteUrl;
+        private String accountType;
+    }
 }
