@@ -99,11 +99,7 @@ public class UserController {
         // TODO so probably this check should be done in the user service
 
         CustomExportUsersResponse customResponse = userService.exportUsers(file, accessToken, orgId, licenses, locations);
-        if (customResponse.is2xxSuccess()) {
-            return ResponseEntity.status(customResponse.getStatus()).body(customResponse);
-        } else {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
-        }
 
+        return ResponseEntity.status(customResponse.getStatus()).body(customResponse);
     }
 }

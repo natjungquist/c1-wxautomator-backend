@@ -12,13 +12,16 @@ package c1wxautomator.backend.services;
 // Used by any controller or service that needs to use Webex license API.
 
 import c1wxautomator.backend.dtos.licenses.License;
-import c1wxautomator.backend.dtos.licenses.LicenseAssignmentRequest;
+import c1wxautomator.backend.dtos.licenses.AssignLicenseRequest;
 import c1wxautomator.backend.dtos.licenses.ListLicensesResponse;
 import c1wxautomator.backend.dtos.wrappers.ApiResponseWrapper;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.*;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
+
 
 import java.util.HashMap;
 import java.util.List;
@@ -114,34 +117,43 @@ public class LicenseService {
         return licenseMap;
     }
 
-    public LicenseAssignmentRequest createLicenseRequest(String userName, String orgId, String webexId, License license, String operation, String locationId, String extension) {
+    public AssignLicenseRequest createLicenseRequest(String userName, String orgId, String webexId, License license, String operation, String locationId, String extension) {
         return null;
     }
 
-    public ApiResponseWrapper sendLicenseRequest(String accessToken, String orgId, LicenseAssignmentRequest licenseRequest) {
+    public ApiResponseWrapper sendLicenseRequest(String accessToken, AssignLicenseRequest licenseRequest) {
         ApiResponseWrapper webexResponse = new ApiResponseWrapper();
 
-        String URL = "https://webexapis.com/v1/licenses/users";
+        if (licenseRequest != null) {
+            // TODO
+        }
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<LicenseAssignmentRequest> requestEntity = new HttpEntity<>(headers);
-
-        RestTemplate restTemplate = new RestTemplate();
+        WebClient webClient = WebClient.builder()
+                .baseUrl("https://webexapis.com")
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .build();
 
         try {
-            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(URL, HttpMethod.PATCH,
-                    requestEntity, new ParameterizedTypeReference<>() {
-                    });
-            if (response.getStatusCode().is2xxSuccessful()) {
-                Map<String, Object> licenseAssignment = response.getBody();
-                webexResponse.setData(licenseAssignment);
-                webexResponse.setStatus(response.getStatusCode().value());
-            } else {
-                webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-                webexResponse.setMessage("An unexpected error occurred assigning license.");
-            }
+            Map<String, Object> licenseAssignment = webClient.patch()
+                    .uri("/v1/licenses/users")
+                    .bodyValue(licenseRequest)
+                    .retrieve()
+                    .onStatus(HttpStatusCode::is4xxClientError, response ->
+                            response.bodyToMono(String.class).flatMap(errorBody ->
+                                    Mono.error(new HttpClientErrorException(response.statusCode(), errorBody))
+                            )
+                    )
+                    .onStatus(HttpStatusCode::is5xxServerError, response ->
+                            response.bodyToMono(String.class).flatMap(errorBody ->
+                                    Mono.error(new HttpServerErrorException(response.statusCode(), errorBody))
+                            )
+                    )
+                    .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+                    .block();
+
+            webexResponse.setData(licenseAssignment);
+            webexResponse.setStatus(HttpStatus.OK.value());
             return webexResponse;
 
             // NOTE: all possible exceptions are caught in this code for (1) debugging purposes and (2) to return

@@ -14,8 +14,9 @@ package c1wxautomator.backend.services;
 // Usage:
 // Used by any controller that needs to bulk export users to Webex API.
 
+import c1wxautomator.backend.dtos.licenses.AssignLicenseResponse;
 import c1wxautomator.backend.dtos.licenses.License;
-import c1wxautomator.backend.dtos.licenses.LicenseAssignmentRequest;
+import c1wxautomator.backend.dtos.licenses.AssignLicenseRequest;
 import c1wxautomator.backend.dtos.locations.Location;
 import c1wxautomator.backend.dtos.users.*;
 import c1wxautomator.backend.dtos.wrappers.ApiResponseWrapper;
@@ -164,16 +165,19 @@ public class UserService {
             return response;
         }
 
-        for (UserMetadata createdUser : createdUsers) {
+        for (UserMetadata createdUser : createdUsers) { // could also iterate over successes list
             String id = createdUser.getWebexId();
             String email = createdUser.getEmail();
             String locationId = createdUser.getLocationId();
             String extension = createdUser.getExtension();
             for (License license : createdUser.getLicenses()) {
-                LicenseAssignmentRequest licenseRequest = licenseService.createLicenseRequest(email, orgId, id, license, "add", locationId, extension);
-                ApiResponseWrapper licenseResponse = licenseService.sendLicenseRequest(accessToken, orgId, licenseRequest);
+                AssignLicenseRequest licenseRequest = licenseService.createLicenseRequest(email, orgId, id, license, "add", locationId, extension);
+                // TODO body is null
+                ApiResponseWrapper licenseResponse = licenseService.sendLicenseRequest(accessToken, licenseRequest);
                 if (licenseResponse.is2xxSuccess() && licenseResponse.hasData()) {
-                    // TODO if license succeeds
+                    AssignLicenseResponse licenseResponseData = (AssignLicenseResponse) licenseResponse.getData();
+                    // It will never try to assign a license that the user already has because this is only going over newly created users
+                    // TODO remove the default licenses
                 } else {
                     // TODO
                     response.setMessage("");
@@ -252,6 +256,10 @@ public class UserService {
      */
     private ApiResponseWrapper send_ExportUsersBulkRequest_ToWebex(UserBulkRequest bulkRequest, String accessToken, String orgId) {
         ApiResponseWrapper webexResponse = new ApiResponseWrapper();
+
+        if (bulkRequest != null) {
+            // TODO 
+        }
 
         String URL = String.format("https://webexapis.com/identity/scim/%s/v2/Bulk", orgId);
 
