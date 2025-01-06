@@ -100,6 +100,9 @@ public class UserController {
 
         CustomExportUsersResponse customResponse = userService.exportUsers(file, accessToken, orgId, licenses, locations);
 
-        return ResponseEntity.status(customResponse.getStatus()).body(customResponse);
+        if (customResponse.isReadyToSend()) {
+            return ResponseEntity.status(customResponse.getStatus()).body(customResponse);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
     }
 }
