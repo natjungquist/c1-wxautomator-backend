@@ -11,10 +11,12 @@ package c1wxautomator.backend.services;
 // Usage:
 // Used by any controller or service that needs to use Webex license API.
 
+import c1wxautomator.backend.dtos.licenses.AssignLicenseResponse;
 import c1wxautomator.backend.dtos.licenses.License;
 import c1wxautomator.backend.dtos.licenses.AssignLicenseRequest;
 import c1wxautomator.backend.dtos.licenses.ListLicensesResponse;
 import c1wxautomator.backend.dtos.wrappers.ApiResponseWrapper;
+import c1wxautomator.backend.exceptions.RequestCreationException;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -117,15 +119,73 @@ public class LicenseService {
         return licenseMap;
     }
 
-    public AssignLicenseRequest createLicenseRequest(String userName, String orgId, String webexId, License license, String operation, String locationId, String extension) {
-        return null;
+    AssignLicenseRequest.LicenseRequest createCalling_Professional_LicenseRequest(License license, String operation, String locationId, String extension) throws RequestCreationException {
+        if (license == null || license.getId() == null || license.getId().isEmpty() || locationId == null || locationId.isEmpty() || extension == null || extension.isEmpty()) {
+            throw new RequestCreationException("License, location id, and extension are required.");
+        }
+        return new AssignLicenseRequest.LicenseRequest(operation, license.getId(), locationId, extension);
     }
 
-    public ApiResponseWrapper sendLicenseRequest(String accessToken, AssignLicenseRequest licenseRequest) {
+    AssignLicenseRequest createCalling_Professional_AssignmentRequest(String orgId, License license, String email, String id, String locationId, String extension)
+    throws RequestCreationException {
+        verifyAssignmentInput(orgId, license, id);
+
+        if (locationId == null || locationId.isEmpty() || extension == null || extension.isEmpty()) {
+            throw new RequestCreationException("Location id and extension are required");
+        }
+
+        AssignLicenseRequest licenseRequest = new AssignLicenseRequest(email, orgId, id);
+        try {
+            AssignLicenseRequest.LicenseRequest addLicenceRequest = createCalling_Professional_LicenseRequest(license, "add", locationId, extension);
+            licenseRequest.addLicense(addLicenceRequest);
+        } catch (RequestCreationException e) {
+            throw new RequestCreationException(e.getMessage());
+        }
+
+        return licenseRequest;
+    }
+
+    AssignLicenseRequest.LicenseRequest createCC_LicenseRequest(License license, String operation) throws RequestCreationException {
+        if (license == null || license.getId() == null || license.getId().isEmpty()) {
+            throw new RequestCreationException("License is required.");
+        }
+        return new AssignLicenseRequest.LicenseRequest(operation, license.getId());
+    }
+
+    AssignLicenseRequest createCC_AssignmentRequest(String orgId, License license, String email, String id)
+            throws RequestCreationException {
+        verifyAssignmentInput(orgId, license, id);
+
+        AssignLicenseRequest licenseRequest = new AssignLicenseRequest(email, orgId, id);
+        try {
+            AssignLicenseRequest.LicenseRequest addLicenceRequest = createCC_LicenseRequest(license, "add");
+            licenseRequest.addLicense(addLicenceRequest);
+        } catch (RequestCreationException e) {
+            throw new RequestCreationException(e.getMessage());
+        }
+
+        return licenseRequest;
+    }
+
+    private void verifyAssignmentInput(String orgId, License license, String id) throws RequestCreationException {
+        if (license == null || license.getId() == null || license.getId().isEmpty()) {
+            throw new RequestCreationException("License is required.");
+        }
+        if (orgId == null || orgId.isEmpty()) {
+            throw new RequestCreationException("Organization ID is required.");
+        }
+        if (id == null || id.isEmpty()) {
+            throw new RequestCreationException("Person ID is required.");
+        }
+    }
+
+    ApiResponseWrapper sendLicenseRequest(String accessToken, AssignLicenseRequest licenseRequest) {
         ApiResponseWrapper webexResponse = new ApiResponseWrapper();
 
-        if (licenseRequest != null) {
-            // TODO
+        if (licenseRequest == null) {
+            webexResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+            webexResponse.setMessage("License request is null.");
+            return webexResponse;
         }
 
         WebClient webClient = WebClient.builder()
@@ -135,7 +195,7 @@ public class LicenseService {
                 .build();
 
         try {
-            Map<String, Object> licenseAssignment = webClient.patch()
+            AssignLicenseResponse licenseAssignment = webClient.patch()
                     .uri("/v1/licenses/users")
                     .bodyValue(licenseRequest)
                     .retrieve()
@@ -149,7 +209,7 @@ public class LicenseService {
                                     Mono.error(new HttpServerErrorException(response.statusCode(), errorBody))
                             )
                     )
-                    .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+                    .bodyToMono(AssignLicenseResponse.class)
                     .block();
 
             webexResponse.setData(licenseAssignment);
