@@ -97,6 +97,8 @@ public class UserService {
         // Step 3: Send BulkRequest to Webex
         ApiResponseWrapper webexResponse = send_ExportUsersBulkRequest_ToWebex(bulkRequest, accessToken, orgId);
 
+        // ------------- TODO refactor into helper methods starting here -------------
+
         // if the call to the Webex API was not successful, send the error status and message back to client
         if (!webexResponse.is2xxSuccess()) {
             response.setError(webexResponse.getStatus(), webexResponse.getMessage());
@@ -107,9 +109,6 @@ public class UserService {
         }
 
         // Step 4: Process response about creating users
-
-
-        // Step 5: Assign licenses
         UserBulkResponse userBulkResponse = (UserBulkResponse) webexResponse.getData();
         if (!userBulkResponse.hasOperations()) {
             response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error: Webex did not perform any operations to create users.");
@@ -143,7 +142,9 @@ public class UserService {
             return response;
         }
 
-        // Need to call the API to get the ids of the users at the organization. The ids are needed to assign licenses, but only accessible this way.
+        // Step 5: Assign licenses
+        // TODO - problem: sometimes searchusers does not get the newly created users???
+        // 5a. First, need to call the Webex API to get the ids of the users at the organization. The ids are needed to assign licenses, but only accessible this way.
         ApiResponseWrapper searchUsersResponse = userGetter.searchUsers(accessToken, orgId);
         if (searchUsersResponse.is2xxSuccess() && searchUsersResponse.hasData()) {
             SearchUsersResponse searchUsersData = (SearchUsersResponse) searchUsersResponse.getData();
@@ -160,37 +161,53 @@ public class UserService {
                 }
             }
         } else {
-            // TODO
+            response.setStatus(HttpStatus.OK.value());
             response.setMessage("Error getting any user IDs. No licenses were assigned.");
             return response;
         }
 
-        for (UserMetadata createdUser : createdUsers) { // could also iterate over successes list
+        for (UserMetadata createdUser : createdUsers) {
             String id = createdUser.getWebexId();
             String email = createdUser.getEmail();
             String locationId = createdUser.getLocationId();
             String extension = createdUser.getExtension();
-            for (License license : createdUser.getLicenses()) {
-                AssignLicenseRequest licenseRequest = licenseService.createLicenseRequest(email, orgId, id, license, "add", locationId, extension);
-                // TODO body is null
-                ApiResponseWrapper licenseResponse = licenseService.sendLicenseRequest(accessToken, licenseRequest);
-                if (licenseResponse.is2xxSuccess() && licenseResponse.hasData()) {
-                    AssignLicenseResponse licenseResponseData = (AssignLicenseResponse) licenseResponse.getData();
-                    // It will never try to assign a license that the user already has because this is only going over newly created users
-                    // TODO remove the default licenses
-                } else {
-                    // TODO
-                    response.setMessage("");
-                    return response;
+
+            List<License> licensesToAdd = createdUser.getLicenses();
+            if (licensesToAdd != null) {
+                for (License license : licensesToAdd) {
+                    AssignLicenseRequest licenseRequest = null;
+                    if (license.getName().equals("Webex Calling - Professional")) {
+                        try {
+                            licenseRequest = licenseService.createCalling_Professional_AssignmentRequest(orgId, license, email, id, locationId, extension);
+                        } catch (RequestCreationException e) {
+                            String message = "An unexpected error occurred assigning license: " + e.getMessage();
+                            response.addLicenseFailure(email, license.getName(), message, 500);
+                        }
+                    } else {
+                        try {
+                            licenseRequest = licenseService.createCC_AssignmentRequest(orgId, license, email, id);
+                        } catch (RequestCreationException e) {
+                            String message = "An unexpected error occurred assigning license: " + e.getMessage();
+                            response.addLicenseFailure(email, license.getName(), message, 500);
+                        }
+                    }
+
+                    ApiResponseWrapper licenseResponse = licenseService.sendLicenseRequest(accessToken, licenseRequest);
+                    if (licenseResponse.is2xxSuccess() && licenseResponse.hasData()) {
+                        AssignLicenseResponse licenseResponseData = (AssignLicenseResponse) licenseResponse.getData();
+                        // This app cannot try to assign a license that the user already has because this is only going over newly created users
+                        // TODO remove the default licenses
+                        response.addLicenseSuccess(email, license.getName());
+                    } else {
+                        int status = licenseResponse.getStatus();
+                        String message = licenseResponse.getMessage();
+                        response.addLicenseFailure(email, license.getName(), message, status);
+                    }
                 }
             }
-
         }
 
-
-        // Step 6: Create custom response body to send to client
-
-
+        response.setStatus(HttpStatus.OK.value());
         return response;
     }
 
@@ -257,8 +274,10 @@ public class UserService {
     private ApiResponseWrapper send_ExportUsersBulkRequest_ToWebex(UserBulkRequest bulkRequest, String accessToken, String orgId) {
         ApiResponseWrapper webexResponse = new ApiResponseWrapper();
 
-        if (bulkRequest != null) {
-            // TODO 
+        if (bulkRequest == null) {
+            webexResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+            webexResponse.setMessage("User bulk request is null.");
+            return webexResponse;
         }
 
         String URL = String.format("https://webexapis.com/identity/scim/%s/v2/Bulk", orgId);
