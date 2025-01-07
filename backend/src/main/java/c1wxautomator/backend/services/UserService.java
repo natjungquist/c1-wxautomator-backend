@@ -14,6 +14,7 @@ package c1wxautomator.backend.services;
 // Usage:
 // Used by any controller that needs to bulk export users to Webex API.
 
+import c1wxautomator.backend.dtos.licenses.AssignLicenseResponse;
 import c1wxautomator.backend.dtos.licenses.License;
 import c1wxautomator.backend.dtos.licenses.AssignLicenseRequest;
 import c1wxautomator.backend.dtos.locations.Location;
@@ -89,12 +90,12 @@ public class UserService {
         try {
             bulkRequest = createBulkRequest(userRequests, usersMetadataMap, bulkIdToEmailMap);
         } catch (RequestCreationException e) {
-            response.setError(HttpStatus.BAD_REQUEST.value(), "An error occurred processing the data for exporting users: " + e.getMessage());
+            response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "An error occurred processing the data for exporting users: " + e.getMessage());
             return response;
         }
 
         // Step 3: Send BulkRequest to Webex
-        ApiResponseWrapper webexResponse = send_ExportUsersBulkRequest_ToWebex(bulkRequest, accessToken, orgId);
+        ApiResponseWrapper<UserBulkResponse> webexResponse = send_ExportUsersBulkRequest_ToWebex(bulkRequest, accessToken, orgId);
 
         // ------------- TODO refactor into helper methods starting here -------------
 
@@ -108,7 +109,7 @@ public class UserService {
         }
 
         // Step 4: Process response about creating users
-        UserBulkResponse userBulkResponse = (UserBulkResponse) webexResponse.getData();
+        UserBulkResponse userBulkResponse = webexResponse.getData();
         if (!userBulkResponse.hasOperations()) {
             response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error: Webex did not perform any operations to create users.");
             return response;
@@ -144,9 +145,9 @@ public class UserService {
         // Step 5: Assign licenses
         // TODO - problem: sometimes searchusers does not get the newly created users???
         // 5a. First, need to call the Webex API to get the ids of the users at the organization. The ids are needed to assign licenses, but only accessible this way.
-        ApiResponseWrapper searchUsersResponse = userGetter.searchUsers(accessToken, orgId);
+        ApiResponseWrapper<SearchUsersResponse> searchUsersResponse = userGetter.searchUsers(accessToken, orgId);
         if (searchUsersResponse.is2xxSuccess() && searchUsersResponse.hasData()) {
-            SearchUsersResponse searchUsersData = (SearchUsersResponse) searchUsersResponse.getData();
+            SearchUsersResponse searchUsersData = searchUsersResponse.getData();
             List<SearchUsersResponse.Resource> allUsers = searchUsersData.getResources();
             if (allUsers != null) {
                 for (SearchUsersResponse.Resource user : allUsers) {
@@ -191,7 +192,7 @@ public class UserService {
                         }
                     }
 
-                    ApiResponseWrapper licenseResponse = licenseService.sendLicenseRequest(accessToken, licenseRequest);
+                    ApiResponseWrapper<AssignLicenseResponse> licenseResponse = licenseService.sendLicenseRequest(accessToken, licenseRequest);
                     if (licenseResponse.is2xxSuccess() && licenseResponse.hasData()) {
 //                        AssignLicenseResponse licenseResponseData = (AssignLicenseResponse) licenseResponse.getData();
                         response.addLicenseSuccess(email, license.getName());
@@ -268,8 +269,8 @@ public class UserService {
      * @return custom ApiResponseWrapper object where 'status' is the status of the response from
      * the call to the Webex API and 'data' is the UserBulkResponse data or null if there is an error.
      */
-    private ApiResponseWrapper send_ExportUsersBulkRequest_ToWebex(UserBulkRequest bulkRequest, String accessToken, String orgId) {
-        ApiResponseWrapper webexResponse = new ApiResponseWrapper();
+    private ApiResponseWrapper<UserBulkResponse> send_ExportUsersBulkRequest_ToWebex(UserBulkRequest bulkRequest, String accessToken, String orgId) {
+        ApiResponseWrapper<UserBulkResponse> webexResponse = new ApiResponseWrapper<>();
 
         if (bulkRequest == null) {
             webexResponse.setStatus(HttpStatus.BAD_REQUEST.value());

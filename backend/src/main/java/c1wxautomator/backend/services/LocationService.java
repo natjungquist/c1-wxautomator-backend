@@ -33,8 +33,8 @@ public class LocationService {
      * @param orgId id of the organization to export users to.
      * @return ApiResponseWrapper with 'data' being locations at the org.
      */
-    public ApiResponseWrapper listLocations(String accessToken, String orgId) {
-        ApiResponseWrapper webexResponse = new ApiResponseWrapper();
+    public ApiResponseWrapper<ListLocationsResponse> listLocations(String accessToken, String orgId) {
+        ApiResponseWrapper<ListLocationsResponse> webexResponse = new ApiResponseWrapper<>();
 
         String URL = String.format("https://webexapis.com/v1/locations?orgId=%s", orgId);
 

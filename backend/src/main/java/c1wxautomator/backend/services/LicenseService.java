@@ -40,8 +40,8 @@ public class LicenseService {
      * @param orgId       id of the organization to export users to.
      * @return ApiResponseWrapper with 'data' being a list of available licenses.
      */
-    public ApiResponseWrapper listLicenses(String accessToken, String orgId) {
-        ApiResponseWrapper webexResponse = new ApiResponseWrapper();
+    public ApiResponseWrapper<ListLicensesResponse> listLicenses(String accessToken, String orgId) {
+        ApiResponseWrapper<ListLicensesResponse> webexResponse = new ApiResponseWrapper<>();
 
         String URL = String.format("https://webexapis.com/v1/licenses?orgId=%s", orgId);
 
@@ -179,8 +179,8 @@ public class LicenseService {
         }
     }
 
-    ApiResponseWrapper sendLicenseRequest(String accessToken, AssignLicenseRequest licenseRequest) {
-        ApiResponseWrapper webexResponse = new ApiResponseWrapper();
+    ApiResponseWrapper<AssignLicenseResponse> sendLicenseRequest(String accessToken, AssignLicenseRequest licenseRequest) {
+        ApiResponseWrapper<AssignLicenseResponse> webexResponse = new ApiResponseWrapper<>();
 
         if (licenseRequest == null) {
             webexResponse.setStatus(HttpStatus.BAD_REQUEST.value());

@@ -64,7 +64,7 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("The wrong type of file was provided. Must be a CSV file.");
         }
         Set<String> requiredCols = new HashSet<>(
-                Set.of("First Name", "Display Name", "Status", "Email", "Extension", "Location", "Phone Number",
+                Set.of("First Name", "Display Name", "Status", "Email", "Extension", "Location",
                         "Webex Contact Center Premium Agent", "Webex Contact Center Standard Agent", "Webex Calling - Professional")
         );
         if (!(CsvValidator.csvContainsRequiredCols(file, requiredCols))) {
@@ -75,9 +75,9 @@ public class UserController {
         String orgId = wxAuthorizationService.getAuthorizedOrgId();
 
         Map<String, License> licenses = new HashMap<>();
-        ApiResponseWrapper listLicensesFromWebex = licenseService.listLicenses(accessToken, orgId);
+        ApiResponseWrapper<ListLicensesResponse> listLicensesFromWebex = licenseService.listLicenses(accessToken, orgId);
         if (listLicensesFromWebex.is2xxSuccess() && listLicensesFromWebex.hasData()) {
-            ListLicensesResponse listLicensesResponse = (ListLicensesResponse) listLicensesFromWebex.getData();
+            ListLicensesResponse listLicensesResponse = listLicensesFromWebex.getData();
             if (listLicensesResponse.hasLicenses()) {
                 licenses = licenseService.makeLicensesMap(listLicensesResponse.getItems());
             } else {
@@ -86,9 +86,9 @@ public class UserController {
         }
 
         Map<String, Location> locations = new HashMap<>();
-        ApiResponseWrapper listLocationsFromWebex = locationService.listLocations(accessToken, orgId);
+        ApiResponseWrapper<ListLocationsResponse> listLocationsFromWebex = locationService.listLocations(accessToken, orgId);
         if (listLocationsFromWebex.is2xxSuccess() && listLocationsFromWebex.hasData()) {
-            ListLocationsResponse listLocationsResponse = (ListLocationsResponse) listLocationsFromWebex.getData();
+            ListLocationsResponse listLocationsResponse = listLocationsFromWebex.getData();
             if (listLocationsResponse.hasLocations()) {
                  locations = locationService.makeLocationsMap(listLocationsResponse.getItems());
             }

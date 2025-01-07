@@ -50,9 +50,9 @@ public class OrganizationController {
     public ResponseEntity<?> getMyOrganizationDetails() {
         String accessToken = wxAuthorizationService.getAccessToken();
         if (accessToken != null) {
-            ApiResponseWrapper webexResponse = organizationService.getMyOrganizationDetails(accessToken);
+            ApiResponseWrapper<OrganizationDetailsResponse> webexResponse = organizationService.getMyOrganizationDetails(accessToken);
             if (webexResponse.is2xxSuccess() && webexResponse.hasData()) {
-                OrganizationDetailsResponse organizationDetailsResponse = (OrganizationDetailsResponse) webexResponse.getData();
+                OrganizationDetailsResponse organizationDetailsResponse = webexResponse.getData();
                 return ResponseEntity.ok(organizationDetailsResponse);
             } else {
                 // return a response corresponding to what is set in ApiResponseWrapper

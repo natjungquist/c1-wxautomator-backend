@@ -64,7 +64,7 @@ public class CustomExportUsersResponse {
     public void addLicenseSuccess(String email, String licenseName) {
         CreateUserResult userResult = findUserResultByEmail(email);
         if (userResult != null) {
-            String message = "License assigned.";
+            String message = "Assigned.";
             userResult.getLicenseResults().add(new CreateUserResult.AssignLicenseResult(200, message, licenseName));
         }
     }
@@ -102,7 +102,7 @@ public class CustomExportUsersResponse {
     @Setter
     public static class CreateUserResult {
         private Integer status;
-        private String message;
+        private String message = "Created.";
         private String email;
         private String firstName;
         private String lastName;

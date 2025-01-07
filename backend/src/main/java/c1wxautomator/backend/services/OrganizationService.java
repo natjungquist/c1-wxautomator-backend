@@ -53,7 +53,7 @@ public class OrganizationService {
      * @return custom ApiResponseWrapper object where 'status' is the status of the response from
      * the call to the Webex API and 'data' is the organization details or null if there is an error.
      */
-    public ApiResponseWrapper getMyOrganizationDetails(String accessToken) {
+    public ApiResponseWrapper<OrganizationDetailsResponse> getMyOrganizationDetails(String accessToken) {
 
         String orgId = getMyOrgId();
 
@@ -68,9 +68,9 @@ public class OrganizationService {
      * @return custom ApiResponseWrapper object where 'status' is the status of the response from
      * the call to the Webex API and 'data' is the organization details or null if there is an error.
      */
-    public ApiResponseWrapper getOrganizationDetails(String accessToken, String orgId) {
+    public ApiResponseWrapper<OrganizationDetailsResponse> getOrganizationDetails(String accessToken, String orgId) {
 
-        ApiResponseWrapper webexResponse = new ApiResponseWrapper();
+        ApiResponseWrapper<OrganizationDetailsResponse> webexResponse = new ApiResponseWrapper<>();
 
         String url = String.format("https://webexapis.com/v1/organizations/%s", orgId);
 

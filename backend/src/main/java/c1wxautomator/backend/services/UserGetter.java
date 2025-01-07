@@ -25,8 +25,8 @@ public class UserGetter {
      * @param orgId       id of the organization to export users to.
      * @return ApiResponseWrapper with 'data' being a list of users at the organization.
      */
-    public ApiResponseWrapper searchUsers(String accessToken, String orgId) {
-        ApiResponseWrapper webexResponse = new ApiResponseWrapper();
+    public ApiResponseWrapper<SearchUsersResponse> searchUsers(String accessToken, String orgId) {
+        ApiResponseWrapper<SearchUsersResponse> webexResponse = new ApiResponseWrapper<>();
 
         String URL = String.format("https://webexapis.com/identity/scim/%s/v2/Users", orgId);
 
