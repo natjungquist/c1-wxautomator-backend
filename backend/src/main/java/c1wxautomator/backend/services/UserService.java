@@ -57,117 +57,35 @@ public class UserService {
 
         CustomExportUsersResponse response = new CustomExportUsersResponse();
 
-        // NOTE that the csv file will contain the license to be granted to the user, but the UserRequest object will not
-        // contain this license because the Webex APIs for create user and assign license are separate.
-        // Instead, the license assignment is processed in a separate request.
-        // NOTE that creating the user with the bulk API automatically sets all licenses to false.
-
         // These maps store extra information about the users. This info is separate because creating the user must be done first.
         // After the user is created, this info is need for further operations on the user.
         Map<String, UserMetadata> usersMetadataMap = new HashMap<>(); //key: username, value: usermetadata
         Map<String, String> bulkIdToEmailMap = new HashMap<>(); //key:bulkId, value: email/username
 
         // Step 1: Read users from CSV and populate users in usersMetadataMap with their userRequests, licenses, and locations
-        List<UserRequest> userRequests;
-        try {
-            userRequests = csvProcessor.readUsersFromCsv(file, usersMetadataMap, licenses, locations);
-        } catch (LogicalProgrammingException | CsvProcessingException e) {
-            response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "An error occurred processing the CSV file: " + e.getMessage());
-            return response;
-        } catch (LicenseNotAvailableException | LocationNotAvailableException e) {
-            response.setError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
-            return response;
-        }
+        List<UserRequest> userRequests = readUsersFromCsv(file, licenses, locations, response, usersMetadataMap);
+        if (userRequests == null) return response;
 
-        if (userRequests.isEmpty()) {
-            response.setError(HttpStatus.BAD_REQUEST.value(), "An error occurred processing the CSV file: no users found.");
-            return response;
-        }
-
-        // Step 2: Create BulkRequest and set bulkIds to usersMetadata
-        UserBulkRequest bulkRequest;
-        try {
-            bulkRequest = createBulkRequest(userRequests, usersMetadataMap, bulkIdToEmailMap);
-        } catch (RequestCreationException e) {
-            response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "An error occurred processing the data for exporting users: " + e.getMessage());
-            return response;
-        }
+        // Step 2: Create BulkRequest
+        UserBulkRequest bulkRequest = createUserBulkRequest(userRequests, usersMetadataMap, bulkIdToEmailMap, response);
+        if (bulkRequest == null) return response;
 
         // Step 3: Send BulkRequest to Webex
-        ApiResponseWrapper<UserBulkResponse> webexResponse = send_ExportUsersBulkRequest_ToWebex(bulkRequest, accessToken, orgId);
-
-        // ------------- TODO refactor into helper methods starting here -------------
-
-        // if the call to the Webex API was not successful, send the error status and message back to client
-        if (!webexResponse.is2xxSuccess()) {
-            response.setError(webexResponse.getStatus(), webexResponse.getMessage());
-            return response;
-        }
-        if (!webexResponse.hasData()) {
-            response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error occurred exporting users: server did not track Webex API response.");
-        }
+        ApiResponseWrapper<UserBulkResponse> webexResponse = sendBulkRequest(bulkRequest, accessToken, orgId, response);
+        if (webexResponse == null) return response;
 
         // Step 4: Process response about creating users
-        UserBulkResponse userBulkResponse = webexResponse.getData();
-        if (!userBulkResponse.hasOperations()) {
-            response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error: Webex attempted to create users but none succeeded.");
-            return response;
-        }
+        List<UserMetadata> createdUsers = processUserCreationResponse(webexResponse, usersMetadataMap, bulkIdToEmailMap, response);
+        if (createdUsers.isEmpty()) return response;
 
-        List<UserMetadata> createdUsers = new ArrayList<>();
-
-        List<UserOperationResponse> operations = userBulkResponse.getOperations();  // Extract operations from the response
-        for (UserOperationResponse operation : operations) {
-            // Using the bulk id from the response to get the email/username and other user data
-            String bulkId = operation.getBulkId();
-            String email = bulkIdToEmailMap.get(bulkId);
-            UserMetadata userMetadata = usersMetadataMap.get(email);
-            String firstName = userMetadata.getFirstName();
-            String lastName = userMetadata.getLastName();
-
-            if (operation.getStatus().equals("201")) { // NOTE: Must hardcode the values as strings because that is how Webex API responds
-                response.addSuccess(201, email, firstName, lastName);
-                createdUsers.add(userMetadata);
-            } else if (operation.getStatus().equals("200")) {
-                response.addFailure(200, email, firstName, lastName, "Webex API returned 200 and did not create this user.");
-            } else if (operation.getStatus().equals("403")) {
-                response.addFailure(403, email, firstName, lastName, "Access denied.");
-            } else if (operation.getStatus().equals("409")) {
-                String errorMessage = String.format("Webex API responded with '%s' because a user with this email already exists.", operation.getWebexErrorMessage());
-                response.addFailure(Integer.parseInt(operation.getStatus()), email, firstName, lastName, errorMessage);
-            } else {
-                response.addFailure(Integer.parseInt(operation.getStatus()), email, firstName, lastName, operation.getWebexErrorMessage());
-            }
-        }
-
-        if (createdUsers.isEmpty()) {  // && response.getNumSuccessfullyCreated() == createdUsers.size()
-            response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Server error trying to track created users.");
-            return response;
-        }
-
-        // Step 5: Assign licenses
-        // Using a scheduler to delay the call because the Webex API needs time to process the newly created users.
-        CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-            try (ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor()) {
-                scheduler.schedule(() -> {
-                    // 5a. First, need to call the Webex API to get the ids of the users at the organization. The ids are needed to assign licenses, but only accessible this way.
-                    SearchUsersResponse searchUsersResponse = canGetUserIds(response, accessToken, orgId);
-                    if (searchUsersResponse != null) {
-                        // 5b. Save the userIds into the usersMetadataMap
-                        saveUserIds(searchUsersResponse, usersMetadataMap);
-                    }
-                }, 5, TimeUnit.SECONDS);
-            } catch (Exception e) {
-                response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error scheduling the delay: " + e.getMessage());
-            }
-        }).thenRun(() -> {
-            // 5c. With the userIds, assign the licenses
-            licenseService.assignLicensesAndUpdateResponse(response, createdUsers, accessToken, orgId);
-        }).exceptionally(ex -> {
-            response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error during async process: " + ex.getMessage());
-            return null;
-        });
-
+        // Step 5: Assign licenses with delay
+        // Run async because we have to wait for the delay to and do more processing before returning a response to the client.
+        CompletableFuture<Void> future = CompletableFuture.runAsync(() ->
+                        assignLicensesWithDelay(response, createdUsers, accessToken, orgId, usersMetadataMap))
+                .exceptionally(ex -> {
+                    response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error during async process: " + ex.getMessage());
+                    return null;
+                });
         try {
             future.get();
         } catch (InterruptedException | ExecutionException e) {
@@ -178,28 +96,48 @@ public class UserService {
         return response;
     }
 
-    private SearchUsersResponse canGetUserIds(CustomExportUsersResponse response, String accessToken, String orgId) {
-        ApiResponseWrapper<SearchUsersResponse> searchUsersResponse = userGetter.searchUsers(accessToken, orgId);
-        if (!searchUsersResponse.is2xxSuccess() || !searchUsersResponse.hasData()) {
-            response.setStatus(HttpStatus.OK.value());
-            response.setMessage("Error getting any user IDs. No licenses were assigned.");
-            return searchUsersResponse.getData();
+    /**
+     * Reads users from the CSV file and populates the metadata map.
+     *
+     * @param file The CSV file containing user data.
+     * @param licenses The map of licenses at this organization.
+     * @param locations The map of locations at this organization.
+     * @param response The response object to update in case of errors.
+     * @param usersMetadataMap The map to store user metadata.
+     * @return The list of UserRequest objects or null if there were errors.
+     */
+
+    private List<UserRequest> readUsersFromCsv(MultipartFile file, Map<String, License> licenses, Map<String, Location> locations, CustomExportUsersResponse response, Map<String, UserMetadata> usersMetadataMap) {
+        try {
+            return csvProcessor.readUsersFromCsv(file, usersMetadataMap, licenses, locations);
+        } catch (LogicalProgrammingException | CsvProcessingException e) {
+            response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "An error occurred processing the CSV file: " + e.getMessage());
+        } catch (LicenseNotAvailableException | LocationNotAvailableException e) {
+            response.setError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
         return null;
     }
 
-    private static void saveUserIds(SearchUsersResponse searchUsersResponse, Map<String, UserMetadata> usersMetadataMap) {
-        List<SearchUsersResponse.Resource> allUsers = searchUsersResponse.getResources();
-        if (allUsers != null) {
-            for (SearchUsersResponse.Resource user : allUsers) {
-                String email = user.getUserName();
-                UserMetadata userMetadata = usersMetadataMap.get(email);
-                if (userMetadata == null) { // If the user is not in usersMetadataMap, it was not just now created, so it can be discarded.
-                    continue;
-                }
-                String id = user.getId();
-                userMetadata.setPersonId(id);  // sets the personId for the userMetadata objects in userMetadataMap and createdUsers list
-            }
+    /**
+     * Creates a UserBulkRequest for sending to Webex.
+     *
+     * @param userRequests The list of user requests.
+     * @param usersMetadataMap The map of user metadata.
+     * @param bulkIdToEmailMap The map to link bulk IDs to email addresses.
+     * @param response The response object to update in case of errors.
+     * @return The UserBulkRequest object or null if there were errors.
+     */
+    private UserBulkRequest createUserBulkRequest(List<UserRequest> userRequests, Map<String, UserMetadata> usersMetadataMap, Map<String, String> bulkIdToEmailMap, CustomExportUsersResponse response) {
+        if (userRequests.isEmpty()) {
+            response.setError(HttpStatus.BAD_REQUEST.value(), "An error occurred processing the CSV file: no users found.");
+            return null;
+        }
+
+        try {
+            return createBulkRequest(userRequests, usersMetadataMap, bulkIdToEmailMap);
+        } catch (RequestCreationException e) {
+            response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "An error occurred processing the data for exporting users: " + e.getMessage());
+            return null;
         }
     }
 
@@ -247,6 +185,30 @@ public class UserService {
         bulkRequest.setOperations(operations);
 
         return bulkRequest;
+    }
+
+    /**
+     * Sends the bulk request to Webex and processes the response.
+     *
+     * @param bulkRequest The bulk request to be sent.
+     * @param accessToken The token used for authenticating the request.
+     * @param orgId The ID of the organization.
+     * @param response The response object to update in case of errors.
+     * @return The Webex API response or null if there were errors.
+     */
+    private ApiResponseWrapper<UserBulkResponse> sendBulkRequest(UserBulkRequest bulkRequest, String accessToken, String orgId, CustomExportUsersResponse response) {
+        ApiResponseWrapper<UserBulkResponse> webexResponse = send_ExportUsersBulkRequest_ToWebex(bulkRequest, accessToken, orgId);
+
+        // if the call to the Webex API was not successful, send the error status and message back to client
+        if (!webexResponse.is2xxSuccess()) {
+            response.setError(webexResponse.getStatus(), webexResponse.getMessage());
+            return null;
+        }
+        if (!webexResponse.hasData()) {
+            response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error occurred exporting users: server did not track Webex API response.");
+            return null;
+        }
+        return webexResponse;
     }
 
     /**
@@ -321,6 +283,137 @@ public class UserService {
             webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             webexResponse.setMessage("Error bulk exporting users with Webex API due to logical error in server program: " + e.getMessage());
             return webexResponse;
+        }
+    }
+
+    /**
+     * Processes the response from Webex about user creation.
+     *
+     * @param webexResponse The Webex API response.
+     * @param usersMetadataMap The map of user metadata.
+     * @param bulkIdToEmailMap The map linking bulk IDs to email addresses.
+     * @param response The response object to update with success or failure.
+     * @return The list of created UserMetadata objects.
+     */
+    private List<UserMetadata> processUserCreationResponse(ApiResponseWrapper<UserBulkResponse> webexResponse, Map<String, UserMetadata> usersMetadataMap, Map<String, String> bulkIdToEmailMap, CustomExportUsersResponse response) {
+        UserBulkResponse userBulkResponse = webexResponse.getData();
+        if (!userBulkResponse.hasOperations()) {
+            response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error: Webex attempted to create users but none succeeded.");
+            return new ArrayList<>();
+        }
+
+        List<UserMetadata> createdUsers = new ArrayList<>();
+        List<UserOperationResponse> operations = userBulkResponse.getOperations();  // Extract operations from the response
+        for (UserOperationResponse operation : operations) {
+            // Using the bulk id from the response to get the email/username and other user data
+            String bulkId = operation.getBulkId();
+            String email = bulkIdToEmailMap.get(bulkId);
+            UserMetadata userMetadata = usersMetadataMap.get(email);
+            String firstName = userMetadata.getFirstName();
+            String lastName = userMetadata.getLastName();
+
+            if (operation.getStatus().equals("201")) { // NOTE: Must hardcode the values as strings because that is how Webex API responds
+                response.addSuccess(201, email, firstName, lastName);
+                createdUsers.add(userMetadata);
+            } else {
+                handleOperationFailure(response, operation, email, firstName, lastName);
+            }
+        }
+
+        if (createdUsers.isEmpty()) {  // && response.getNumSuccessfullyCreated() == createdUsers.size()
+            response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Server error trying to track created users.");
+        }
+
+        return createdUsers;
+    }
+
+    /**
+     * Handles the failure cases in the user creation operation.
+     *
+     * @param response The response object to update with failure details.
+     * @param operation The user operation response from Webex.
+     * @param email The email address of the user.
+     * @param firstName The first name of the user.
+     * @param lastName The last name of the user.
+     */
+    private void handleOperationFailure(CustomExportUsersResponse response, UserOperationResponse operation, String email, String firstName, String lastName) {
+        if (operation.getStatus().equals("200")) {
+            response.addFailure(200, email, firstName, lastName, "Webex API returned 200 and did not create this user.");
+        } else if (operation.getStatus().equals("403")) {
+            response.addFailure(403, email, firstName, lastName, "Access denied.");
+        } else if (operation.getStatus().equals("409")) {
+            String errorMessage = String.format("Webex API responded with '%s' because a user with this email already exists.", operation.getWebexErrorMessage());
+            response.addFailure(Integer.parseInt(operation.getStatus()), email, firstName, lastName, errorMessage);
+        } else {
+            response.addFailure(Integer.parseInt(operation.getStatus()), email, firstName, lastName, operation.getWebexErrorMessage());
+        }
+    }
+
+    /**
+     * Assigns licenses to users after a delay to allow Webex API processing.
+     *
+     * @param response The response object to update in case of errors.
+     * @param createdUsers The list of created UserMetadata objects.
+     * @param accessToken The token used for authenticating the request.
+     * @param orgId The ID of the organization.
+     * @param usersMetadataMap The map of user metadata.
+     */
+    private void assignLicensesWithDelay(CustomExportUsersResponse response, List<UserMetadata> createdUsers, String accessToken, String orgId, Map<String, UserMetadata> usersMetadataMap) {
+        // Using a scheduler to delay the call because the Webex API needs time to process the newly created users.
+
+        try (ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor()) {
+            scheduler.schedule(() -> {
+                // 5a. First, need to call the Webex API to get the ids of the users at the organization. The ids are needed to assign licenses, but only accessible this way.
+                SearchUsersResponse searchUsersResponse = canGetUserIds(response, accessToken, orgId);
+                if (searchUsersResponse != null) {
+                    // 5b. Save the userIds into the usersMetadataMap
+                    saveUserIds(searchUsersResponse, usersMetadataMap);
+                }
+            }, 5, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error scheduling the delay: " + e.getMessage());
+        }
+
+        // 5c. After getting the userIds, assign the licenses
+        licenseService.assignLicensesAndUpdateResponse(response, createdUsers, accessToken, orgId);
+    }
+
+    /**
+     * Retrieves user IDs from Webex API for the newly created users.
+     *
+     * @param response The response object to update in case of errors.
+     * @param accessToken The token used for authenticating the request.
+     * @param orgId The ID of the organization.
+     * @return The SearchUsersResponse object or null if there were errors.
+     */
+    private SearchUsersResponse canGetUserIds(CustomExportUsersResponse response, String accessToken, String orgId) {
+        ApiResponseWrapper<SearchUsersResponse> searchUsersResponse = userGetter.searchUsers(accessToken, orgId);
+        if (!searchUsersResponse.is2xxSuccess() || !searchUsersResponse.hasData()) {
+            response.setStatus(HttpStatus.OK.value());
+            response.setMessage("Error getting any user IDs. No licenses were assigned.");
+            return searchUsersResponse.getData();
+        }
+        return null;
+    }
+
+    /**
+     * Saves the user IDs into the user metadata map.
+     *
+     * @param searchUsersResponse The response from the Webex API with user IDs.
+     * @param usersMetadataMap The map to store user metadata.
+     */
+    private static void saveUserIds(SearchUsersResponse searchUsersResponse, Map<String, UserMetadata> usersMetadataMap) {
+        List<SearchUsersResponse.Resource> allUsers = searchUsersResponse.getResources();
+        if (allUsers != null) {
+            for (SearchUsersResponse.Resource user : allUsers) {
+                String email = user.getUserName();
+                UserMetadata userMetadata = usersMetadataMap.get(email);
+                if (userMetadata == null) { // If the user is not in usersMetadataMap, it was not just now created, so it can be discarded.
+                    continue;
+                }
+                String id = user.getId();
+                userMetadata.setPersonId(id);  // sets the personId for the userMetadata objects in userMetadataMap and createdUsers list
+            }
         }
     }
 }
