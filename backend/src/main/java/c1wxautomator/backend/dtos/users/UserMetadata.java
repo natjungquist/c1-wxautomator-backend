@@ -24,7 +24,7 @@ import java.util.List;
 public class UserMetadata {
     private UserRequest userRequest;
     private String bulkId;
-    private String webexId;
+    private String personId;
     private List<License> licenses = new ArrayList<>();
     private Location location;
 

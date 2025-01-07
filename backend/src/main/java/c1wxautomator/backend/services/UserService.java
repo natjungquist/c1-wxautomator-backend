@@ -14,7 +14,6 @@ package c1wxautomator.backend.services;
 // Usage:
 // Used by any controller that needs to bulk export users to Webex API.
 
-import c1wxautomator.backend.dtos.licenses.AssignLicenseResponse;
 import c1wxautomator.backend.dtos.licenses.License;
 import c1wxautomator.backend.dtos.licenses.AssignLicenseRequest;
 import c1wxautomator.backend.dtos.locations.Location;
@@ -157,7 +156,7 @@ public class UserService {
                         continue;
                     }
                     String id = user.getId();
-                    userMetadata.setWebexId(id);
+                    userMetadata.setPersonId(id);
                 }
             }
         } else {
@@ -167,7 +166,7 @@ public class UserService {
         }
 
         for (UserMetadata createdUser : createdUsers) {
-            String id = createdUser.getWebexId();
+            String id = createdUser.getPersonId();
             String email = createdUser.getEmail();
             String locationId = createdUser.getLocationId();
             String extension = createdUser.getExtension();
@@ -194,9 +193,7 @@ public class UserService {
 
                     ApiResponseWrapper licenseResponse = licenseService.sendLicenseRequest(accessToken, licenseRequest);
                     if (licenseResponse.is2xxSuccess() && licenseResponse.hasData()) {
-                        AssignLicenseResponse licenseResponseData = (AssignLicenseResponse) licenseResponse.getData();
-                        // This app cannot try to assign a license that the user already has because this is only going over newly created users
-                        // TODO remove the default licenses
+//                        AssignLicenseResponse licenseResponseData = (AssignLicenseResponse) licenseResponse.getData();
                         response.addLicenseSuccess(email, license.getName());
                     } else {
                         int status = licenseResponse.getStatus();
@@ -334,11 +331,6 @@ public class UserService {
             webexResponse.setMessage("Error bulk exporting users with Webex API due to logical error in server program: " + e.getMessage());
             return webexResponse;
         }
-    }
-
-    // TODO
-    private boolean isValidExtension(String extension) {
-        return false;
     }
 
 //    /**

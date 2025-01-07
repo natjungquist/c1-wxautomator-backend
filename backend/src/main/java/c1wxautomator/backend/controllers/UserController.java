@@ -91,12 +91,8 @@ public class UserController {
             ListLocationsResponse listLocationsResponse = (ListLocationsResponse) listLocationsFromWebex.getData();
             if (listLocationsResponse.hasLocations()) {
                  locations = locationService.makeLocationsMap(listLocationsResponse.getItems());
-            } else {
-               return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("The organization does not have any locations, so no users can be assigned Webex Calling - Professional licenses.");
             }
         }
-        // TODO there must be a location ONLY in order to assign webex calling professional
-        // TODO so probably this check should be done in the user service
 
         CustomExportUsersResponse customResponse = userService.exportUsers(file, accessToken, orgId, licenses, locations);
 

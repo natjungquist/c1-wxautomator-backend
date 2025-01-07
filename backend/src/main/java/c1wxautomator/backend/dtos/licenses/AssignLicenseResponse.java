@@ -15,7 +15,7 @@ import java.util.List;
 @Getter
 public class AssignLicenseResponse {
     private String orgId;
-    private String personId;  // called webexId elsewhere
+    private String personId;
     private String email;
     private List<String> licenses;
     private List<SiteUrl> siteUrls;

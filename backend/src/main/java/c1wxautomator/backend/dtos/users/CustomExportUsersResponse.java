@@ -5,19 +5,18 @@ package c1wxautomator.backend.dtos.users;
 // This is a custom class representing a response that the application sends to the client.
 // Key features include:
 //      - message if further details about the response need to be relayed.
-//      - two lists: one for successes and one for failures, storing information about
-//          each user processed during the export.
-//     - methods to add success and failure results to the respective lists,
+//      - results list storing information about each user processed during the export.
+//      - licenseResults lists for each user, storing information about each license that was attempted to be assigned.
+//      - methods to add success and failure results to the respective lists,
 //          including details such as bulk ID, username, and error details.
 //
-// The SuccessResult and FailureResult classes are nested static classes that represent individual
-// success and failure results, each containing relevant details for the operation.
+// The CreateUserResult and AssignLicenseResult classes are nested static classes that represent individual
+// results of API operations, each containing relevant details for the operation.
 //
 // Usage:
 // This class is intended to be used in services and controllers that export users to Webex.
 // Controllers will send this as the response body to the client.
 
-import c1wxautomator.backend.dtos.licenses.License;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
@@ -34,6 +33,7 @@ public class CustomExportUsersResponse {
     private Integer numSuccessfullyCreated = 0;
     private String message = "";
     private List<CreateUserResult> results = new ArrayList<>();
+
 
     public boolean isReadyToSend() {
         return this.status != null && this.totalCreateAttempts != null && this.numSuccessfullyCreated != null

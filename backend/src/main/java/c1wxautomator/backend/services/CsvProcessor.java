@@ -94,10 +94,6 @@ public class CsvProcessor {
                     userRequest.addPrimaryExtension((record.get("Extension")));
                 }
 
-                // TODO set non-extension phone numbers -
-                //  NOTE: must already be configured as a phone number at this location in order for this to work
-                // TODO check if the user's phone number matches the location phone num ?
-
                 String locationInput = record.get("Location");
                 if (locationInput != null) {
                     Location location = locations.get(locationInput);
@@ -126,6 +122,9 @@ public class CsvProcessor {
                 if (record.get("Webex Calling - Professional").equalsIgnoreCase("true")) {
                     if (licenses.get("Webex Calling - Professional") == null) {
                         throw new LicenseNotAvailableException("Webex Calling - Professional license is not available at this organization, so it cannot be assigned to any users.");
+                    }
+                    if (userMetadata.getLocation() == null) {
+                        throw new LicenseNotAvailableException("Webex Calling - Professional license cannot be assigned without specifying a location for the user.");
                     }
                     userMetadata.addLicense(licenses.get("Webex Calling - Professional"));
                 }

@@ -1,10 +1,12 @@
 package c1wxautomator.backend.dtos.users;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Getter;
-import lombok.Setter;
-
-import java.util.List;
+// Author: Natalie Jungquist
+//
+// This class represents the response structure for a result as returned by the Webex API.
+//
+// Usage:
+// Services that make calls to the Webex API endpoint to search for existing users will receive
+// a response represented by this data structure.
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;

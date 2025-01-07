@@ -18,14 +18,14 @@ import java.util.List;
 @Getter
 public class AssignLicenseRequest {
     private String email;
-    private String personId;  //called webexId elsewhere
+    private String personId;
     private String orgId;
     private List<LicenseRequest> licenses = new ArrayList<>();
 
-    public AssignLicenseRequest(String email, String orgId, String webexId) {
+    public AssignLicenseRequest(String email, String orgId, String personId) {
         this.email = email;
         this.orgId = orgId;
-        this.personId = webexId;
+        this.personId = personId;
     }
 
     public void addLicense(LicenseRequest license) {
