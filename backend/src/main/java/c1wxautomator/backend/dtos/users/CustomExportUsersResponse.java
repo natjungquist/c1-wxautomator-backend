@@ -80,7 +80,7 @@ public class CustomExportUsersResponse {
     public void addLicenseFailure(String email, String licenseName, String apiMessage, Integer status) {
         CreateUserResult userResult = findUserResultByEmail(email);
         if (userResult != null) {
-            String message = String.format("Failed to assign license due to %s", apiMessage);
+            String message = String.format("Failed to assign license: %s", apiMessage);
             userResult.getLicenseResults().add(new CreateUserResult.AssignLicenseResult(status, message, licenseName));
         }
     }

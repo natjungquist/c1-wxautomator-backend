@@ -74,7 +74,6 @@ public class CsvProcessor {
                 userRequest.setName(name);
 
                 userRequest.setEmail(record.get("Email"));  // The email column of the csv file corresponds to the userName field for the request
-                // TODO make sure the domain is registered... check what the API responds if it's not registered
 
                 userRequest.setActive(record.get("Status").equalsIgnoreCase("active"));
 
@@ -85,9 +84,10 @@ public class CsvProcessor {
                 ));
                 userRequest.setSchemas(userSchemas);
 
-                if (record.get("Extension") != null) {
+                String extensionInput = record.get("Extension");
+                if (!extensionInput.isEmpty()) {
                     try {
-                        Integer.parseInt(record.get("Extension")); // Proceed knowing the extension is a valid number
+                        Integer.parseInt(extensionInput); // Proceed knowing the extension is a valid number
                     } catch (NumberFormatException e) { // Handle the case where the extension is not a number
                         throw new CsvProcessingException("At least one record in the CSV is not a valid number. No users have been created.");
                     }
@@ -95,7 +95,7 @@ public class CsvProcessor {
                 }
 
                 String locationInput = record.get("Location");
-                if (locationInput != null) {
+                if (!locationInput.isEmpty()) {
                     Location location = locations.get(locationInput);
                     if (location != null && locations.get(location.getName()) != null) {
                         userMetadata.setLocation(location);
@@ -120,6 +120,12 @@ public class CsvProcessor {
                     userMetadata.addLicense(licenses.get("Contact center Standard Agent"));  // NOTE the Webex API spells them differently (yes, this is confusing)
                 }
                 if (record.get("Webex Calling - Professional").equalsIgnoreCase("true")) {
+                    if (userMetadata.getExtension().isEmpty()) {
+                        throw new CsvProcessingException("Users cannot be assigned the Webex Calling - Professional license without having an extension.");
+                    }
+                    if (record.get("Location").isEmpty()) {
+                        throw new CsvProcessingException("Users cannot be assigned the Webex Calling - Professional license without having a location.");
+                    }
                     if (licenses.get("Webex Calling - Professional") == null) {
                         throw new LicenseNotAvailableException("Webex Calling - Professional license is not available at this organization, so it cannot be assigned to any users.");
                     }
@@ -135,7 +141,6 @@ public class CsvProcessor {
         } catch (IOException e) {
             throw new CsvProcessingException("An error occurred processing the CSV file: " + e.getMessage());
         }
-        // TODO also catch exceptions if there is undesirable data in the CSV file
 
         // The usersMetadataMap should hold all the same users as the userRequests list
         if (usersMetadataMap.size() != userRequests.size()) {

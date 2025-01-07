@@ -15,6 +15,8 @@ import c1wxautomator.backend.dtos.licenses.AssignLicenseResponse;
 import c1wxautomator.backend.dtos.licenses.License;
 import c1wxautomator.backend.dtos.licenses.AssignLicenseRequest;
 import c1wxautomator.backend.dtos.licenses.ListLicensesResponse;
+import c1wxautomator.backend.dtos.users.CustomExportUsersResponse;
+import c1wxautomator.backend.dtos.users.UserMetadata;
 import c1wxautomator.backend.dtos.wrappers.ApiResponseWrapper;
 import c1wxautomator.backend.exceptions.RequestCreationException;
 import org.springframework.core.ParameterizedTypeReference;
@@ -75,19 +77,19 @@ public class LicenseService {
         } catch (HttpClientErrorException e) { // These occur when the HTTP response status code is 4xx.
             // Examples:  400 Bad Request, 401 Unauthorized, 404 Not Found, 403 Forbidden
             webexResponse.setStatus(HttpStatus.BAD_REQUEST.value());
-            webexResponse.setMessage("Webex API returned a 4xx error for retrieving license information: " + e.getResponseBodyAsString());
+            webexResponse.setMessage("Webex API returned a 4xx error for retrieving license information. " + e.getResponseBodyAsString());
             return webexResponse;
 
         } catch (HttpServerErrorException e) { // These occur when the HTTP response status code is 5xx.
             // Examples: 500 Internal Server Error, 502 Bad Gateway, 503 Service Unavailable
             webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            webexResponse.setMessage("Webex API returned a 5xx error for retrieving license information: " + e.getResponseBodyAsString());
+            webexResponse.setMessage("Webex API returned a 5xx error for retrieving license information. " + e.getResponseBodyAsString());
             return webexResponse;
 
         } catch (ResourceAccessException e) { // These occur when there are problems with the network or the server.
             // Examples: DNS resolution failures, Connection timeouts, SSL handshake failures
             webexResponse.setStatus(HttpStatus.SERVICE_UNAVAILABLE.value());
-            webexResponse.setMessage("Error accessing Webex API when trying to retrieve license information: " + e.getMessage());
+            webexResponse.setMessage("Error accessing Webex API when trying to retrieve license information. " + e.getMessage());
             return webexResponse;
 
         } catch (
@@ -96,7 +98,7 @@ public class LicenseService {
             // Examples: Mismatched response structure, Parsing errors, Incorrect use of
             // ParameterizedTypeReference, Invalid request or URL, Method not allowed
             webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            webexResponse.setMessage("Error retrieving the license information from Webex API due to logical error in server program: " + e.getMessage());
+            webexResponse.setMessage("Error retrieving the license information from Webex API due to logical error in server program. " + e.getMessage());
             return webexResponse;
         }
     }
@@ -119,14 +121,14 @@ public class LicenseService {
         return licenseMap;
     }
 
-    AssignLicenseRequest.LicenseRequest createCalling_Professional_LicenseRequest(License license, String operation, String locationId, String extension) throws RequestCreationException {
+    private AssignLicenseRequest.LicenseRequest createCalling_Professional_LicenseRequest(License license, String operation, String locationId, String extension) throws RequestCreationException {
         if (license == null || license.getId() == null || license.getId().isEmpty() || locationId == null || locationId.isEmpty() || extension == null || extension.isEmpty()) {
             throw new RequestCreationException("License, location id, and extension are required.");
         }
         return new AssignLicenseRequest.LicenseRequest(operation, license.getId(), locationId, extension);
     }
 
-    AssignLicenseRequest createCalling_Professional_AssignmentRequest(String orgId, License license, String email, String id, String locationId, String extension)
+    private AssignLicenseRequest createCalling_Professional_AssignmentRequest(String orgId, License license, String email, String id, String locationId, String extension)
     throws RequestCreationException {
         verifyAssignmentInput(orgId, license, id);
 
@@ -145,14 +147,14 @@ public class LicenseService {
         return licenseRequest;
     }
 
-    AssignLicenseRequest.LicenseRequest createCC_LicenseRequest(License license, String operation) throws RequestCreationException {
+    private AssignLicenseRequest.LicenseRequest createCC_LicenseRequest(License license, String operation) throws RequestCreationException {
         if (license == null || license.getId() == null || license.getId().isEmpty()) {
             throw new RequestCreationException("License is required.");
         }
         return new AssignLicenseRequest.LicenseRequest(operation, license.getId());
     }
 
-    AssignLicenseRequest createCC_AssignmentRequest(String orgId, License license, String email, String id)
+    private AssignLicenseRequest createCC_AssignmentRequest(String orgId, License license, String email, String id)
             throws RequestCreationException {
         verifyAssignmentInput(orgId, license, id);
 
@@ -176,6 +178,46 @@ public class LicenseService {
         }
         if (id == null || id.isEmpty()) {
             throw new RequestCreationException("Person ID is required.");
+        }
+    }
+
+    void assignLicensesAndUpdateResponse(CustomExportUsersResponse response, List<UserMetadata> createdUsers, String accessToken, String orgId) {
+        for (UserMetadata createdUser : createdUsers) {
+            String id = createdUser.getPersonId();
+            String email = createdUser.getEmail();
+            String locationId = createdUser.getLocationId();
+            String extension = createdUser.getExtension();
+
+            List<License> licensesToAdd = createdUser.getLicenses();
+            if (licensesToAdd != null) {
+                for (License license : licensesToAdd) {
+                    AssignLicenseRequest licenseRequest = null;
+                    if (license.getName().equals("Webex Calling - Professional")) {
+                        try {
+                            licenseRequest = createCalling_Professional_AssignmentRequest(orgId, license, email, id, locationId, extension);
+                        } catch (RequestCreationException e) {
+                            String message = "An unexpected error occurred assigning license: " + e.getMessage();
+                            response.addLicenseFailure(email, license.getName(), message, 500);
+                        }
+                    } else {
+                        try {
+                            licenseRequest = createCC_AssignmentRequest(orgId, license, email, id);
+                        } catch (RequestCreationException e) {
+                            String message = "An unexpected error occurred assigning license: " + e.getMessage();
+                            response.addLicenseFailure(email, license.getName(), message, 500);
+                        }
+                    }
+
+                    ApiResponseWrapper<AssignLicenseResponse> licenseResponse = sendLicenseRequest(accessToken, licenseRequest);
+                    if (licenseResponse.is2xxSuccess() && licenseResponse.hasData()) {
+                        response.addLicenseSuccess(email, license.getName());
+                    } else {
+                        int status = licenseResponse.getStatus();
+                        String message = licenseResponse.getMessage();
+                        response.addLicenseFailure(email, license.getName(), message, status);
+                    }
+                }
+            }
         }
     }
 
@@ -221,19 +263,19 @@ public class LicenseService {
         } catch (HttpClientErrorException e) { // These occur when the HTTP response status code is 4xx.
             // Examples:  400 Bad Request, 401 Unauthorized, 404 Not Found, 403 Forbidden
             webexResponse.setStatus(HttpStatus.BAD_REQUEST.value());
-            webexResponse.setMessage(String.format("Webex API returned a 4xx error for assigning license: %s", e.getResponseBodyAsString()));
+            webexResponse.setMessage("Webex API returned a 4xx error. Extension already exists or Forbidden.");
             return webexResponse;
 
         } catch (HttpServerErrorException e) { // These occur when the HTTP response status code is 5xx.
             // Examples: 500 Internal Server Error, 502 Bad Gateway, 503 Service Unavailable
             webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            webexResponse.setMessage(String.format("Webex API returned a 5xx error for assigning license: %s", e.getResponseBodyAsString()));
+            webexResponse.setMessage("Webex API returned a 5xx error.");
             return webexResponse;
 
         } catch (ResourceAccessException e) { // These occur when there are problems with the network or the server.
             // Examples: DNS resolution failures, Connection timeouts, SSL handshake failures
             webexResponse.setStatus(HttpStatus.SERVICE_UNAVAILABLE.value());
-            webexResponse.setMessage(String.format("Error accessing Webex API when trying to assign license : %s", e.getMessage()));
+            webexResponse.setMessage(String.format("Error accessing Webex API when trying to assign license. %s", e.getMessage()));
             return webexResponse;
 
         } catch (
@@ -242,7 +284,7 @@ public class LicenseService {
             // Examples: Mismatched response structure, Parsing errors, Incorrect use of
             // ParameterizedTypeReference, Invalid request or URL, Method not allowed
             webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            webexResponse.setMessage(String.format("Error assigning license: %s", e.getMessage()));
+            webexResponse.setMessage(String.format("Error assigning license. %s", e.getMessage()));
             return webexResponse;
         }
     }

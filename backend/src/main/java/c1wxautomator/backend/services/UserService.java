@@ -14,9 +14,7 @@ package c1wxautomator.backend.services;
 // Usage:
 // Used by any controller that needs to bulk export users to Webex API.
 
-import c1wxautomator.backend.dtos.licenses.AssignLicenseResponse;
 import c1wxautomator.backend.dtos.licenses.License;
-import c1wxautomator.backend.dtos.licenses.AssignLicenseRequest;
 import c1wxautomator.backend.dtos.locations.Location;
 import c1wxautomator.backend.dtos.users.*;
 import c1wxautomator.backend.dtos.wrappers.ApiResponseWrapper;
@@ -28,6 +26,7 @@ import org.springframework.web.client.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
+import java.util.concurrent.*;
 
 @Service
 public class UserService {
@@ -111,7 +110,7 @@ public class UserService {
         // Step 4: Process response about creating users
         UserBulkResponse userBulkResponse = webexResponse.getData();
         if (!userBulkResponse.hasOperations()) {
-            response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error: Webex did not perform any operations to create users.");
+            response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error: Webex attempted to create users but none succeeded.");
             return response;
         }
 
@@ -130,83 +129,78 @@ public class UserService {
                 response.addSuccess(201, email, firstName, lastName);
                 createdUsers.add(userMetadata);
             } else if (operation.getStatus().equals("200")) {
-                response.addFailure(200, email, firstName, lastName, "Webex API returned 200 but did not create this user. Does it already exist?");
-            } else {
+                response.addFailure(200, email, firstName, lastName, "Webex API returned 200 and did not create this user.");
+            } else if (operation.getStatus().equals("403")) {
+                response.addFailure(403, email, firstName, lastName, "Access denied.");
+            } else if (operation.getStatus().equals("409")) {
                 String errorMessage = String.format("Webex API responded with '%s' because a user with this email already exists.", operation.getWebexErrorMessage());
                 response.addFailure(Integer.parseInt(operation.getStatus()), email, firstName, lastName, errorMessage);
+            } else {
+                response.addFailure(Integer.parseInt(operation.getStatus()), email, firstName, lastName, operation.getWebexErrorMessage());
             }
         }
 
         if (createdUsers.isEmpty()) {  // && response.getNumSuccessfullyCreated() == createdUsers.size()
-            response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Attempted to create users but none succeeded.");
+            response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Server error trying to track created users.");
             return response;
         }
 
         // Step 5: Assign licenses
-        // TODO - problem: sometimes searchusers does not get the newly created users???
-        // 5a. First, need to call the Webex API to get the ids of the users at the organization. The ids are needed to assign licenses, but only accessible this way.
-        ApiResponseWrapper<SearchUsersResponse> searchUsersResponse = userGetter.searchUsers(accessToken, orgId);
-        if (searchUsersResponse.is2xxSuccess() && searchUsersResponse.hasData()) {
-            SearchUsersResponse searchUsersData = searchUsersResponse.getData();
-            List<SearchUsersResponse.Resource> allUsers = searchUsersData.getResources();
-            if (allUsers != null) {
-                for (SearchUsersResponse.Resource user : allUsers) {
-                    String email = user.getUserName();
-                    UserMetadata userMetadata = usersMetadataMap.get(email);
-                    if (userMetadata == null) { // If the user is not in usersMetadataMap, it was not just now created, so it can be discarded.
-                        continue;
+        // Using a scheduler to delay the call because the Webex API needs time to process the newly created users.
+        CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+            try (ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor()) {
+                scheduler.schedule(() -> {
+                    // 5a. First, need to call the Webex API to get the ids of the users at the organization. The ids are needed to assign licenses, but only accessible this way.
+                    SearchUsersResponse searchUsersResponse = canGetUserIds(response, accessToken, orgId);
+                    if (searchUsersResponse != null) {
+                        // 5b. Save the userIds into the usersMetadataMap
+                        saveUserIds(searchUsersResponse, usersMetadataMap);
                     }
-                    String id = user.getId();
-                    userMetadata.setPersonId(id);
-                }
+                }, 5, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error scheduling the delay: " + e.getMessage());
             }
-        } else {
-            response.setStatus(HttpStatus.OK.value());
-            response.setMessage("Error getting any user IDs. No licenses were assigned.");
-            return response;
-        }
+        }).thenRun(() -> {
+            // 5c. With the userIds, assign the licenses
+            licenseService.assignLicensesAndUpdateResponse(response, createdUsers, accessToken, orgId);
+        }).exceptionally(ex -> {
+            response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error during async process: " + ex.getMessage());
+            return null;
+        });
 
-        for (UserMetadata createdUser : createdUsers) {
-            String id = createdUser.getPersonId();
-            String email = createdUser.getEmail();
-            String locationId = createdUser.getLocationId();
-            String extension = createdUser.getExtension();
-
-            List<License> licensesToAdd = createdUser.getLicenses();
-            if (licensesToAdd != null) {
-                for (License license : licensesToAdd) {
-                    AssignLicenseRequest licenseRequest = null;
-                    if (license.getName().equals("Webex Calling - Professional")) {
-                        try {
-                            licenseRequest = licenseService.createCalling_Professional_AssignmentRequest(orgId, license, email, id, locationId, extension);
-                        } catch (RequestCreationException e) {
-                            String message = "An unexpected error occurred assigning license: " + e.getMessage();
-                            response.addLicenseFailure(email, license.getName(), message, 500);
-                        }
-                    } else {
-                        try {
-                            licenseRequest = licenseService.createCC_AssignmentRequest(orgId, license, email, id);
-                        } catch (RequestCreationException e) {
-                            String message = "An unexpected error occurred assigning license: " + e.getMessage();
-                            response.addLicenseFailure(email, license.getName(), message, 500);
-                        }
-                    }
-
-                    ApiResponseWrapper<AssignLicenseResponse> licenseResponse = licenseService.sendLicenseRequest(accessToken, licenseRequest);
-                    if (licenseResponse.is2xxSuccess() && licenseResponse.hasData()) {
-//                        AssignLicenseResponse licenseResponseData = (AssignLicenseResponse) licenseResponse.getData();
-                        response.addLicenseSuccess(email, license.getName());
-                    } else {
-                        int status = licenseResponse.getStatus();
-                        String message = licenseResponse.getMessage();
-                        response.addLicenseFailure(email, license.getName(), message, status);
-                    }
-                }
-            }
+        try {
+            future.get();
+        } catch (InterruptedException | ExecutionException e) {
+            response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error waiting for completion: " + e.getMessage());
         }
 
         response.setStatus(HttpStatus.OK.value());
         return response;
+    }
+
+    private SearchUsersResponse canGetUserIds(CustomExportUsersResponse response, String accessToken, String orgId) {
+        ApiResponseWrapper<SearchUsersResponse> searchUsersResponse = userGetter.searchUsers(accessToken, orgId);
+        if (!searchUsersResponse.is2xxSuccess() || !searchUsersResponse.hasData()) {
+            response.setStatus(HttpStatus.OK.value());
+            response.setMessage("Error getting any user IDs. No licenses were assigned.");
+            return searchUsersResponse.getData();
+        }
+        return null;
+    }
+
+    private static void saveUserIds(SearchUsersResponse searchUsersResponse, Map<String, UserMetadata> usersMetadataMap) {
+        List<SearchUsersResponse.Resource> allUsers = searchUsersResponse.getResources();
+        if (allUsers != null) {
+            for (SearchUsersResponse.Resource user : allUsers) {
+                String email = user.getUserName();
+                UserMetadata userMetadata = usersMetadataMap.get(email);
+                if (userMetadata == null) { // If the user is not in usersMetadataMap, it was not just now created, so it can be discarded.
+                    continue;
+                }
+                String id = user.getId();
+                userMetadata.setPersonId(id);  // sets the personId for the userMetadata objects in userMetadataMap and createdUsers list
+            }
+        }
     }
 
     /**
@@ -222,7 +216,7 @@ public class UserService {
     private UserBulkRequest createBulkRequest(List<UserRequest> userRequests, Map<String, UserMetadata> usersMetadataMap,
                                               Map<String, String> bulkIdToEmailMap) throws RequestCreationException {
         if (userRequests == null || userRequests.isEmpty()) {
-            throw new RequestCreationException("Error occurred assembling user data: no users found.");
+            throw new RequestCreationException("Error occurred assembling user data: no users provided.");
         }
 
         UserBulkRequest bulkRequest = new UserBulkRequest();
@@ -252,11 +246,7 @@ public class UserService {
         }
         bulkRequest.setOperations(operations);
 
-        if (bulkRequest.getOperations().isEmpty()) {
-            throw new RequestCreationException("Error occurred assembling user data: no operations found.");
-        } else {
-            return bulkRequest;
-        }
+        return bulkRequest;
     }
 
     /**
@@ -333,17 +323,4 @@ public class UserService {
             return webexResponse;
         }
     }
-
-//    /**
-//     * Processes the Webex API response after submitting the bulk user creation request.
-//     * Maps the Webex API response to a custom response for the frontend, providing relevant details
-//     * about the success or failure of each user operation.
-//     *
-//     * @param webexResponse the Webex API response body containing the bulk user creation results.
-//     * @param bulkIdToEmailMap a map to relate bulk operation IDs to usernames.
-//     * @return CustomExportUsersResponse containing the processed response details.
-//     */
-//    private CustomExportUsersResponse processWebexResponse(UserBulkResponse webexResponse, Map<String, String> bulkIdToEmailMap) {
-//        return
-//    }
 }
