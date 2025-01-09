@@ -72,6 +72,18 @@ public class WxAuthorizationService {
     }
 
     /**
+     * Method to validate that the logged-in user has the right scope to perform an API call.
+     * Use in services that make API calls. If the user does not have the required scope, return
+     * 403 to the client. If false, make sure the scope is set in application.yml
+     *
+     * @param scope specific scope name for an oauth2 provider call
+     * @return true if the user has this scope
+     */
+    public boolean validateScope(String scope) {
+        return false;
+    }
+
+    /**
      * Stores the id of the organization that the user is authorized to make API calls on behalf of.
      * The orgId is embedded in the code from the authorization code flow.
      *

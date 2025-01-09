@@ -1,17 +1,6 @@
 package c1wxautomator.backend.services;
 
 // Author: Natalie Jungquist
-//
-// Service class for processing CSV files and mapping the data to application-specific objects.
-// Key Features:
-//      - Parses and validates user data from CSV files.
-//      - Maps CSV records to UserRequest objects for further processing.
-//      - Tracks user metadata such as licenses and locations.
-//      - Ensures data integrity by validating file contents and logical consistency.
-//
-// Usage:
-//      - Utilized by controllers or other services requiring CSV file processing for user data import.
-//      - Facilitates the bulk creation of users, license assignments, and other related workflows.
 
 import c1wxautomator.backend.dtos.licenses.License;
 import c1wxautomator.backend.dtos.locations.Location;
@@ -34,17 +23,35 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ *  Service class for processing CSV files and mapping the data to application-specific objects.
+ *  Key Features:
+ *       - Parses and validates user data from CSV files.
+ *       - Maps CSV records to UserRequest objects for further processing.
+ *       - Tracks user metadata such as licenses and locations.
+ *       - Ensures data integrity by validating file contents and logical consistency.
+ *  *
+ *  Usage:
+ *       - Utilized by controllers or other services requiring CSV file processing for user data import.
+ *       - Facilitates the bulk creation of users, license assignments, and other related workflows.
+ */
 @Service
 public class CsvProcessor {
+
     /**
      * Reads user data from the CSV file and:
-     * 1. maps the information to UserRequest objects.
-     * 2. tracks licenses for each user in UserMetadata objects, populating usersMetadataMap.
+     *      1. maps the information to UserRequest objects.
+     *      2. tracks licenses for each user in UserMetadata objects, populating usersMetadataMap.
      *
      * @param file the CSV file to read.
+     * @param usersMetadataMap map of all users to be processed.
+     * @param licenses map of licenses at the organization.
+     * @param locations map of locations at the organization.
      * @return List of UserRequest objects created from the CSV file, else a custom exception class if there is an error.
-     * @throws CsvProcessingException      if there is an error processing the CSV file.
+     * @throws CsvProcessingException if there is an error processing the CSV file.
      * @throws LogicalProgrammingException if there is a logical error in the code.
+     * @throws LicenseNotAvailableException if a license is not available, and thus no users can be assigned it.
+     * @throws LocationNotAvailableException if a location is not available, and thus no users can be assigned to it.
      */
     public List<UserRequest> readUsersFromCsv(MultipartFile file, Map<String, UserMetadata> usersMetadataMap, Map<String, License> licenses, Map<String, Location> locations)
             throws CsvProcessingException, LogicalProgrammingException, LicenseNotAvailableException, LocationNotAvailableException {

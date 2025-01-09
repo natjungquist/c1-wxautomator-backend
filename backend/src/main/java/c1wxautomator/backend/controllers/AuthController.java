@@ -1,16 +1,6 @@
 package c1wxautomator.backend.controllers;
 
 // Author: Natalie Jungquist
-// This controller handles authentication-related endpoints for the application.
-// Key features include:
-//      - The `/check-auth` endpoint, which checks whether a user is authenticated by verifying the access token.
-//      - It returns a JSON response indicating whether the user is logged in or not.
-//
-// Dependencies:
-//      - wxAuthorizationService to get access token
-//
-// Usage:
-// Backend endpoint for client to check if they are currently logged in with this application.
 
 import c1wxautomator.backend.services.WxAuthorizationService;
 import org.springframework.http.ResponseEntity;
@@ -24,11 +14,28 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * This controller handles authentication-related endpoints for the application.
+ *  Key features include:
+ *       - The `/check-auth` endpoint, which checks whether a user is authenticated by verifying the access token.
+ *       - It returns a JSON response indicating whether the user is logged in or not.
+ *  *
+ *  Dependencies:
+ *       - wxAuthorizationService to get access token
+ *  *
+ *  Usage:
+ *  Backend endpoint for client to check if they are currently logged in with this application.
+ */
 @RestController
 public class AuthController {
 
     private final WxAuthorizationService wxAuthorizationService;
 
+    /**
+     * Constructor with dependency injection.
+     *
+     * @param wxAuthorizationService service used get access token.
+     */
     public AuthController(WxAuthorizationService wxAuthorizationService) {
         this.wxAuthorizationService = wxAuthorizationService;
     }
