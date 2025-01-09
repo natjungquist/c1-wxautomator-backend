@@ -10,6 +10,7 @@ package c1wxautomator.backend.services;
 // Usage:
 // Used by any controller or service that needs to use Webex location API.
 
+import c1wxautomator.backend.dtos.locations.ListFloorsResponse;
 import c1wxautomator.backend.dtos.locations.ListLocationsResponse;
 import c1wxautomator.backend.dtos.locations.Location;
 import c1wxautomator.backend.dtos.wrappers.ApiResponseWrapper;
@@ -107,5 +108,51 @@ public class LocationService {
             locationMap.put(loc.getName(), loc);
         }
         return locationMap;
+    }
+
+    /**
+     * Calls Webex API to get a list of the floors at a certain location.
+     *
+     * @param accessToken The token used for authenticating the request
+     * @param orgId organization ID where the location is
+     * @param locationId location to get the floors from
+     * @return
+     */
+    public ApiResponseWrapper<ListFloorsResponse> listFloors(String accessToken, String orgId, String locationId) {
+        ApiResponseWrapper<ListFloorsResponse> webexResponse = new ApiResponseWrapper<>();
+
+        try {
+
+            return webexResponse;
+
+            // NOTE: all possible exceptions are caught in this code for (1) debugging purposes and (2) to return
+            // meaningful responses to client via ApiResponseWrapper.
+        } catch (HttpClientErrorException e) { // These occur when the HTTP response status code is 4xx.
+            // Examples:  400 Bad Request, 401 Unauthorized, 404 Not Found, 403 Forbidden
+            webexResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+            webexResponse.setMessage("Webex API returned a 4xx error for retrieving location floors: " + e.getResponseBodyAsString());
+            return webexResponse;
+
+        } catch (HttpServerErrorException e) { // These occur when the HTTP response status code is 5xx.
+            // Examples: 500 Internal Server Error, 502 Bad Gateway, 503 Service Unavailable
+            webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            webexResponse.setMessage("Webex API returned a 5xx error for retrieving location floors: " + e.getResponseBodyAsString());
+            return webexResponse;
+
+        } catch (ResourceAccessException e) { // These occur when there are problems with the network or the server.
+            // Examples: DNS resolution failures, Connection timeouts, SSL handshake failures
+            webexResponse.setStatus(HttpStatus.SERVICE_UNAVAILABLE.value());
+            webexResponse.setMessage("Error accessing Webex API when trying to retrieve location floors: " + e.getMessage());
+            return webexResponse;
+
+        } catch (
+                RestClientException e) { // These occur when the response body cannot be converted to the desired object type.
+            //and all other runtime exceptions within the RestTemplate.
+            // Examples: Mismatched response structure, Parsing errors, Incorrect use of
+            // ParameterizedTypeReference, Invalid request or URL, Method not allowed
+            webexResponse.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            webexResponse.setMessage("Error retrieving the organization's location floors: " + e.getMessage());
+            return webexResponse;
+        }
     }
 }
