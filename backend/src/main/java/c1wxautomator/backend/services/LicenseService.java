@@ -1,15 +1,6 @@
 package c1wxautomator.backend.services;
 
 // Author: Natalie Jungquist
-//
-// Service class for managing license operations with Webex APIs.
-// Key features:
-//      - list all the available licenses of an organization.
-//      - retrieve details about specific licenses such as 'Contact center standard agent',
-//        'contact center premium agent', and 'webex calling professional'.
-//
-// Usage:
-// Used by any controller or service that needs to use Webex license API.
 
 import c1wxautomator.backend.dtos.licenses.AssignLicenseResponse;
 import c1wxautomator.backend.dtos.licenses.License;
@@ -31,6 +22,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ *  Service class for managing license operations with Webex APIs.
+ *  Key features:
+ *       - list all the available licenses of an organization.
+ *       - retrieve details about specific licenses such as 'Contact center standard agent',
+ *         'contact center premium agent', and 'webex calling professional'.
+ *  *
+ *  Usage:
+ *  Used by any controller or service that needs to use Webex license API.
+ */
 @Service
 public class LicenseService {
 
@@ -121,6 +122,16 @@ public class LicenseService {
         return licenseMap;
     }
 
+    /**
+     * Helper method to compile LicenseRequest data for the 'Webex Calling - Professional' license.
+     *
+     * @param license object representing needed licence info
+     * @param operation to do with the license
+     * @param locationId of the location of the user
+     * @param extension of the user
+     * @return LicenseRequest object with necessary data filled out to be sent to the Webex API
+     * @throws RequestCreationException if any of the input is not valid
+     */
     private AssignLicenseRequest.LicenseRequest createCalling_Professional_LicenseRequest(License license, String operation, String locationId, String extension) throws RequestCreationException {
         if (license == null || license.getId() == null || license.getId().isEmpty() || locationId == null || locationId.isEmpty() || extension == null || extension.isEmpty()) {
             throw new RequestCreationException("License, location id, and extension are required.");
@@ -128,6 +139,17 @@ public class LicenseService {
         return new AssignLicenseRequest.LicenseRequest(operation, license.getId(), locationId, extension);
     }
 
+    /**
+     *
+     * @param orgId
+     * @param license
+     * @param email
+     * @param id
+     * @param locationId
+     * @param extension
+     * @return
+     * @throws RequestCreationException if any of the input is not valid
+     */
     private AssignLicenseRequest createCalling_Professional_AssignmentRequest(String orgId, License license, String email, String id, String locationId, String extension)
     throws RequestCreationException {
         verifyAssignmentInput(orgId, license, id);
@@ -147,6 +169,13 @@ public class LicenseService {
         return licenseRequest;
     }
 
+    /**
+     *
+     * @param license
+     * @param operation
+     * @return
+     * @throws RequestCreationException if any of the input is not valid
+     */
     private AssignLicenseRequest.LicenseRequest createCC_LicenseRequest(License license, String operation) throws RequestCreationException {
         if (license == null || license.getId() == null || license.getId().isEmpty()) {
             throw new RequestCreationException("License is required.");
@@ -154,6 +183,15 @@ public class LicenseService {
         return new AssignLicenseRequest.LicenseRequest(operation, license.getId());
     }
 
+    /**
+     *
+     * @param orgId
+     * @param license
+     * @param email
+     * @param id
+     * @return
+     * @throws RequestCreationException if any of the input is not valid
+     */
     private AssignLicenseRequest createCC_AssignmentRequest(String orgId, License license, String email, String id)
             throws RequestCreationException {
         verifyAssignmentInput(orgId, license, id);
@@ -169,6 +207,13 @@ public class LicenseService {
         return licenseRequest;
     }
 
+    /**
+     *
+     * @param orgId
+     * @param license
+     * @param id
+     * @throws RequestCreationException if any of the input is not valid
+     */
     private void verifyAssignmentInput(String orgId, License license, String id) throws RequestCreationException {
         if (license == null || license.getId() == null || license.getId().isEmpty()) {
             throw new RequestCreationException("License is required.");
@@ -181,6 +226,13 @@ public class LicenseService {
         }
     }
 
+    /**
+     *
+     * @param response
+     * @param createdUsers
+     * @param accessToken
+     * @param orgId
+     */
     void assignLicensesAndUpdateResponse(CustomExportUsersResponse response, List<UserMetadata> createdUsers, String accessToken, String orgId) {
         for (UserMetadata createdUser : createdUsers) {
             String id = createdUser.getPersonId();
@@ -221,6 +273,12 @@ public class LicenseService {
         }
     }
 
+    /**
+     *
+     * @param accessToken
+     * @param licenseRequest
+     * @return
+     */
     ApiResponseWrapper<AssignLicenseResponse> sendLicenseRequest(String accessToken, AssignLicenseRequest licenseRequest) {
         ApiResponseWrapper<AssignLicenseResponse> webexResponse = new ApiResponseWrapper<>();
 

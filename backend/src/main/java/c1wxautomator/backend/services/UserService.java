@@ -107,10 +107,10 @@ public class UserService {
     /**
      * Reads users from the CSV file and populates the metadata map.
      *
-     * @param file The CSV file containing user data.
-     * @param licenses The map of licenses at this organization.
-     * @param locations The map of locations at this organization.
-     * @param response The response object to update in case of errors.
+     * @param file             The CSV file containing user data.
+     * @param licenses         The map of licenses at this organization.
+     * @param locations        The map of locations at this organization.
+     * @param response         The response object to update in case of errors.
      * @param usersMetadataMap The map to store user metadata.
      * @return The list of UserRequest objects or null if there were errors.
      */
@@ -129,10 +129,10 @@ public class UserService {
     /**
      * Creates a UserBulkRequest for sending to Webex.
      *
-     * @param userRequests The list of user requests.
+     * @param userRequests     The list of user requests.
      * @param usersMetadataMap The map of user metadata.
      * @param bulkIdToEmailMap The map to link bulk IDs to email addresses.
-     * @param response The response object to update in case of errors.
+     * @param response         The response object to update in case of errors.
      * @return The UserBulkRequest object or null if there were errors.
      */
     private UserBulkRequest createUserBulkRequest(List<UserRequest> userRequests, Map<String, UserMetadata> usersMetadataMap, Map<String, String> bulkIdToEmailMap, CustomExportUsersResponse response) {
@@ -200,8 +200,8 @@ public class UserService {
      *
      * @param bulkRequest The bulk request to be sent.
      * @param accessToken The token used for authenticating the request.
-     * @param orgId The ID of the organization.
-     * @param response The response object to update in case of errors.
+     * @param orgId       The ID of the organization.
+     * @param response    The response object to update in case of errors.
      * @return The Webex API response or null if there were errors.
      */
     private ApiResponseWrapper<UserBulkResponse> sendBulkRequest(UserBulkRequest bulkRequest, String accessToken, String orgId, CustomExportUsersResponse response) {
@@ -268,7 +268,7 @@ public class UserService {
         } catch (HttpClientErrorException e) { // These occur when the HTTP response status code is 4xx.
             // Examples:  400 Bad Request, 401 Unauthorized, 404 Not Found, 403 Forbidden
             webexResponse.setStatus(HttpStatus.BAD_REQUEST.value());
-            webexResponse.setMessage("Webex API returned a 4xx error for bulk exporting users: " + e.getResponseBodyAsString());
+            webexResponse.setMessage("4xx error");
             return webexResponse;
 
         } catch (HttpServerErrorException e) { // These occur when the HTTP response status code is 5xx.
@@ -297,10 +297,10 @@ public class UserService {
     /**
      * Processes the response from Webex about user creation.
      *
-     * @param webexResponse The Webex API response.
+     * @param webexResponse    The Webex API response.
      * @param usersMetadataMap The map of user metadata.
      * @param bulkIdToEmailMap The map linking bulk IDs to email addresses.
-     * @param response The response object to update with success or failure.
+     * @param response         The response object to update with success or failure.
      * @return The list of created UserMetadata objects.
      */
     private List<UserMetadata> processUserCreationResponse(ApiResponseWrapper<UserBulkResponse> webexResponse, Map<String, UserMetadata> usersMetadataMap, Map<String, String> bulkIdToEmailMap, CustomExportUsersResponse response) {
@@ -329,7 +329,7 @@ public class UserService {
         }
 
         if (createdUsers.isEmpty()) {  // && response.getNumSuccessfullyCreated() == createdUsers.size()
-            response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Server error trying to track created users.");
+            response.setError(HttpStatus.OK.value(), "No users were created.");
         }
 
         return createdUsers;
@@ -338,17 +338,15 @@ public class UserService {
     /**
      * Handles the failure cases in the user creation operation.
      *
-     * @param response The response object to update with failure details.
+     * @param response  The response object to update with failure details.
      * @param operation The user operation response from Webex.
-     * @param email The email address of the user.
+     * @param email     The email address of the user.
      * @param firstName The first name of the user.
-     * @param lastName The last name of the user.
+     * @param lastName  The last name of the user.
      */
     private void handleOperationFailure(CustomExportUsersResponse response, UserOperationResponse operation, String email, String firstName, String lastName) {
         if (operation.getStatus().equals("200")) {
-            response.addFailure(200, email, firstName, lastName, "Webex API returned 200 and did not create this user.");
-        } else if (operation.getStatus().equals("403")) {
-            response.addFailure(403, email, firstName, lastName, "Access denied.");
+            response.addFailure(200, email, firstName, lastName, "Webex API returned 200 instead of 201 and did not create this user.");
         } else if (operation.getStatus().equals("409")) {
             String errorMessage = String.format("Webex API responded with '%s' because a user with this email already exists.", operation.getWebexErrorMessage());
             response.addFailure(Integer.parseInt(operation.getStatus()), email, firstName, lastName, errorMessage);
@@ -360,10 +358,10 @@ public class UserService {
     /**
      * Assigns licenses to users after a delay to allow Webex API processing.
      *
-     * @param response The response object to update in case of errors.
-     * @param createdUsers The list of created UserMetadata objects.
-     * @param accessToken The token used for authenticating the request.
-     * @param orgId The ID of the organization.
+     * @param response         The response object to update in case of errors.
+     * @param createdUsers     The list of created UserMetadata objects.
+     * @param accessToken      The token used for authenticating the request.
+     * @param orgId            The ID of the organization.
      * @param usersMetadataMap The map of user metadata.
      */
     private void assignLicensesWithDelay(CustomExportUsersResponse response, List<UserMetadata> createdUsers, String accessToken, String orgId, Map<String, UserMetadata> usersMetadataMap) {
@@ -389,9 +387,9 @@ public class UserService {
     /**
      * Retrieves user IDs from Webex API for the newly created users.
      *
-     * @param response The response object to update in case of errors.
+     * @param response    The response object to update in case of errors.
      * @param accessToken The token used for authenticating the request.
-     * @param orgId The ID of the organization.
+     * @param orgId       The ID of the organization.
      * @return The SearchUsersResponse object or null if there were errors.
      */
     private SearchUsersResponse canGetUserIds(CustomExportUsersResponse response, String accessToken, String orgId) {
@@ -408,7 +406,7 @@ public class UserService {
      * Saves the user IDs into the user metadata map.
      *
      * @param searchUsersResponse The response from the Webex API with user IDs.
-     * @param usersMetadataMap The map to store user metadata.
+     * @param usersMetadataMap    The map to store user metadata.
      */
     private static void saveUserIds(SearchUsersResponse searchUsersResponse, Map<String, UserMetadata> usersMetadataMap) {
         List<SearchUsersResponse.Resource> allUsers = searchUsersResponse.getResources();

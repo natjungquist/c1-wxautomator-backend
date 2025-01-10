@@ -1,18 +1,6 @@
 package c1wxautomator.backend.services;
 
 // Author: Natalie Jungquist
-//
-// This class provides utility methods for validating CSV files uploaded via multipart form-data.
-// It includes methods to:
-//      - Verify if a file is a valid CSV based on content type and file extension.
-//      - Check if the CSV file contains specific required columns.
-//      - Count the number of rows in a CSV file.
-//
-// Dependencies:
-//      - Spring Framework's MultipartFile for file handling.
-//
-// Usage:
-// This class is intended to be used in services or controllers that process CSV uploads.
 
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,6 +10,19 @@ import java.io.InputStreamReader;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ *  This class provides utility methods for validating CSV files uploaded via multipart form-data.
+ *  It includes methods to:
+ *       - Verify if a file is a valid CSV based on content type and file extension.
+ *       - Check if the CSV file contains specific required columns.
+ *       - Count the number of rows in a CSV file.
+ *  *
+ *  Dependencies:
+ *       - Spring Framework's MultipartFile for file handling.
+ *  *
+ *  Usage:
+ *  This class is intended to be used in services or controllers that process CSV uploads.
+ */
 public class CsvValidator {
 
     /**
@@ -70,7 +71,6 @@ public class CsvValidator {
             // Check if required columns are in the header
             return headerSet.containsAll(requiredCols);
         } catch (IOException e) {
-            e.printStackTrace();
             return false;
         }
     }

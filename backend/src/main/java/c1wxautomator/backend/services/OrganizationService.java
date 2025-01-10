@@ -153,7 +153,6 @@ public class OrganizationService {
             return organizationDetailsResponse;
 
         } catch (Exception e) {
-            e.printStackTrace();
             return null;
         }
     }
