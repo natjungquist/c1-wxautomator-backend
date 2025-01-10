@@ -64,19 +64,25 @@ public class UserController {
      * @return response with success or failure messages
      */
     @PostMapping("/export-users")
-    public ResponseEntity<?> exportUsersCsv(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<CustomExportUsersResponse> exportUsersCsv(@RequestParam("file") MultipartFile file) {
+
+        CustomExportUsersResponse customResponse = new CustomExportUsersResponse();
+
         if (file == null || file.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("File is required and cannot be empty.");
+            customResponse.setError(HttpStatus.BAD_REQUEST.value(), "File is required and cannot be empty.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(customResponse);
         }
         if (!CsvValidator.isCsvFile(file)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("The wrong type of file was provided. Must be a CSV file.");
+            customResponse.setError(HttpStatus.BAD_REQUEST.value(), "The wrong type of file was provided. Must be a CSV file.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(customResponse);
         }
         Set<String> requiredCols = new HashSet<>(
                 Set.of("First Name", "Display Name", "Status", "Email", "Extension", "Location",
                         "Webex Contact Center Premium Agent", "Webex Contact Center Standard Agent", "Webex Calling - Professional")
         );
         if (!(CsvValidator.csvContainsRequiredCols(file, requiredCols))) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("File provided does not contain all the columns required to process the request.");
+            customResponse.setError(HttpStatus.BAD_REQUEST.value(), "File provided does not contain all the columns required to process the request.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(customResponse);
         }
 
         String accessToken = wxAuthorizationService.getAccessToken();
@@ -89,7 +95,8 @@ public class UserController {
             if (listLicensesResponse.hasLicenses()) {
                 licenses = licenseService.makeLicensesMap(listLicensesResponse.getItems());
             } else {
-                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("The organization does not have any licenses.");
+                customResponse.setError(HttpStatus.SERVICE_UNAVAILABLE.value(), "The organization does not have any licenses.");
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(customResponse);
             }
         }
 
@@ -102,11 +109,12 @@ public class UserController {
             }
         }
 
-        CustomExportUsersResponse customResponse = userService.exportUsers(file, accessToken, orgId, licenses, locations);
+        customResponse = userService.exportUsers(file, accessToken, orgId, licenses, locations);
 
         if (customResponse.isReadyToSend()) {
             return ResponseEntity.status(customResponse.getStatus()).body(customResponse);
         }
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
+        customResponse.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "An unexpected error occurred.");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(customResponse);
     }
 }
