@@ -398,9 +398,10 @@ public class UserService {
         if (searchUsersResponse.is2xxSuccess() && searchUsersResponse.hasData()) {
             response.setStatus(HttpStatus.OK.value());
             return searchUsersResponse.getData();
+        } else {
+            response.setMessage("Error getting any user IDs. No licenses were assigned.");
+            return null;
         }
-        response.setMessage("Error getting any user IDs. No licenses were assigned.");
-        return null;
     }
 
     /**
