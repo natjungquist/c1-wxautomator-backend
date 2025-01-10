@@ -1,15 +1,6 @@
 package c1wxautomator.backend.dtos.users;
 
 // Author: Natalie Jungquist
-//
-// This class encapsulates metadata associated with a user.
-// It provides various attributes and methods for handling user-related information.
-// Key features:
-//      - UserRequest stores the information provided by the client when they request to create a new user.
-//              This data is what is passed to the Webex API to create the user.
-//
-// Usage:
-// This class is utilized by services that handle exporting users.
 
 import c1wxautomator.backend.dtos.licenses.License;
 import c1wxautomator.backend.dtos.locations.Location;
@@ -19,6 +10,16 @@ import lombok.Setter;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ *  This class encapsulates metadata associated with a user.
+ *  It provides various attributes and methods for handling user-related information.
+ *  Key features:
+ *       - UserRequest stores the information provided by the client when they request to create a new user.
+ *               This data is what is passed to the Webex API to create the user.
+ * //
+ *  Usage:
+ *  This class is utilized by services that handle exporting users.
+ */
 @Setter
 @Getter
 public class UserMetadata {
@@ -28,6 +29,11 @@ public class UserMetadata {
     private List<License> licenses = new ArrayList<>();
     private Location location;
 
+    /**
+     * Method to retrieve the first name of the user, which is inside a Name object.
+     *
+     * @return the first name of the user or an empty string if not available
+     */
     public String getFirstName() {
         if (this.userRequest.getName() == null || this.userRequest.getName().getGivenName() == null) {
             return "";
@@ -35,6 +41,11 @@ public class UserMetadata {
         return this.userRequest.getName().getGivenName();
     }
 
+    /**
+     * Method to retrieve the last name of a user.
+     *
+     * @return the last name of the user or an empty string if not available
+     */
     public String getLastName() {
         if (this.userRequest.getName() == null || this.userRequest.getName().getFamilyName() == null) {
             return "";
@@ -42,6 +53,11 @@ public class UserMetadata {
         return this.userRequest.getName().getFamilyName();
     }
 
+    /**
+     * Method to retrieve the email of a user.
+     *
+     * @return the email of the user or an empty string if not available
+     */
     public String getEmail() {
         if (this.userRequest.getEmail() == null) {
             return "";
@@ -49,6 +65,11 @@ public class UserMetadata {
         return this.userRequest.getEmail();
     }
 
+    /**
+     * Method to retrieve the location ID of a user.
+     *
+     * @return the location ID of the user or an empty string if not available
+     */
     public String getLocationId() {
         if (this.location == null || this.location.getId() == null) {
             return "";

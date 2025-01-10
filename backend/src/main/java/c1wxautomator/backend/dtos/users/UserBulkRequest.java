@@ -1,12 +1,6 @@
 package c1wxautomator.backend.dtos.users;
 
 // Author: Natalie Jungquist
-//
-// This class holds data for the bulk request that is sent to the Webex API.
-// Its fields are named to fit Webex API request specifications.
-//
-// Usage:
-// UserService will use this class to send data to Webex API.
 
 import lombok.Getter;
 import lombok.Setter;
@@ -14,6 +8,13 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/**
+ *  This class holds data for the bulk request that is sent to the Webex API.
+ *  Its fields are named to fit Webex API request specifications.
+ *  *
+ *  Usage:
+ *  UserService will use this class to send data to Webex API.
+ */
 @Setter
 @Getter
 @NoArgsConstructor

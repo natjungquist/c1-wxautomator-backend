@@ -1,12 +1,6 @@
 package c1wxautomator.backend.dtos.users;
 
 // Author: Natalie Jungquist
-//
-// This class represents the response structure for a result as returned by the Webex API.
-//
-// Usage:
-// Services that make calls to the Webex API endpoint to search for existing users will receive
-// a response represented by this data structure.
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
@@ -14,6 +8,13 @@ import lombok.Setter;
 
 import java.util.List;
 
+/**
+ *  This class represents the response structure for a result as returned by the Webex API.
+ *  *
+ *  Usage:
+ *  Services that make calls to the Webex API endpoint to search for existing users will receive
+ *  a response represented by this data structure.
+ */
 @Getter
 @Setter
 public class SearchUsersResponse {
@@ -26,6 +27,9 @@ public class SearchUsersResponse {
     @JsonProperty("Resources")
     private List<Resource> resources;
 
+    /**
+     * Nested class representing the 'resources' part of the response.
+     */
     @Getter
     @Setter
     public static class Resource {
@@ -56,6 +60,9 @@ public class SearchUsersResponse {
 
         private Meta meta;
 
+        /**
+         * Nested class representing the 'name' part of the search users response.
+         */
         @Getter
         @Setter
         public static class Name {
@@ -66,6 +73,9 @@ public class SearchUsersResponse {
             private String honorificSuffix;
         }
 
+        /**
+         * Nested class representing the 'email' part of the search users resource.
+         */
         @Getter
         @Setter
         public static class Email {
@@ -75,6 +85,9 @@ public class SearchUsersResponse {
             private String display;
         }
 
+        /**
+         * Nested class representing the 'phone number' part of the search users resource.
+         */
         @Getter
         @Setter
         public static class PhoneNumber {
@@ -84,6 +97,9 @@ public class SearchUsersResponse {
             private String display;
         }
 
+        /**
+         * Nested class representing the 'photo' part of the search users resource.
+         */
         @Getter
         @Setter
         public static class Photo {
@@ -93,6 +109,9 @@ public class SearchUsersResponse {
             private String display;
         }
 
+        /**
+         * Nested class representing the 'address' part of the search users resource.
+         */
         @Getter
         @Setter
         public static class Address {
@@ -104,6 +123,9 @@ public class SearchUsersResponse {
             private String country;
         }
 
+        /**
+         * Nested class representing the 'enterprise' part of the search users resource.
+         */
         @Getter
         @Setter
         public static class EnterpriseUserExtension {
@@ -114,6 +136,9 @@ public class SearchUsersResponse {
             private String department;
             private Manager manager;
 
+            /**
+             * Nested class representing the 'manager' part of the enterprise schema.
+             */
             @Getter
             @Setter
             public static class Manager {
@@ -123,6 +148,9 @@ public class SearchUsersResponse {
             }
         }
 
+        /**
+         * Nested class representing the 'cisco extension' part of the search users response.
+         */
         @Getter
         @Setter
         public static class CiscoUserExtension {
@@ -136,6 +164,9 @@ public class SearchUsersResponse {
             private List<String> extensionAttribute2;
             private Meta meta;
 
+            /**
+             * Nested class representing the 'sip address' part of the cisco schema.
+             */
             @Getter
             @Setter
             public static class SipAddress {
@@ -145,6 +176,9 @@ public class SearchUsersResponse {
                 private String display;
             }
 
+            /**
+             * Nested class representing the 'managed org' part of the cisco schema.
+             */
             @Getter
             @Setter
             public static class ManagedOrg {
@@ -152,6 +186,9 @@ public class SearchUsersResponse {
                 private String role;
             }
 
+            /**
+             * Nested class representing the 'managed group' part of the cisco schema.
+             */
             @Getter
             @Setter
             public static class ManagedGroup {
@@ -160,6 +197,9 @@ public class SearchUsersResponse {
                 private String role;
             }
 
+            /**
+             * Nested class representing the 'external attribute' part of the cisco schema.
+             */
             @Getter
             @Setter
             public static class ExternalAttribute {
@@ -168,6 +208,9 @@ public class SearchUsersResponse {
             }
         }
 
+        /**
+         * Nested class representing the 'meta' data of the search users resource.
+         */
         @Getter
         @Setter
         public static class Meta {
