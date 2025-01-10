@@ -35,8 +35,10 @@ public class SecurityConfig {
     @Value("${frontend.url}")
     private String frontendUrl;
 
+    @Autowired
     private AuthenticationSuccessHandler LoginSuccessHandler;
 
+    @Autowired
     private LogoutSuccessHandler LogoutSuccessHandler;
 
     /**
