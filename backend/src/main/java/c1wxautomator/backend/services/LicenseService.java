@@ -6,7 +6,7 @@ import c1wxautomator.backend.dtos.licenses.AssignLicenseResponse;
 import c1wxautomator.backend.dtos.licenses.License;
 import c1wxautomator.backend.dtos.licenses.AssignLicenseRequest;
 import c1wxautomator.backend.dtos.licenses.ListLicensesResponse;
-import c1wxautomator.backend.dtos.users.CustomExportUsersResponse;
+import c1wxautomator.backend.dtos.customResponses.CustomExportUsersResponse;
 import c1wxautomator.backend.dtos.users.UserMetadata;
 import c1wxautomator.backend.dtos.wrappers.ApiResponseWrapper;
 import c1wxautomator.backend.exceptions.RequestCreationException;

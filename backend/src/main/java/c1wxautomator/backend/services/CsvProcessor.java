@@ -112,6 +112,7 @@ public class CsvProcessor {
                 }
 
                 userRequests.add(userRequest);
+                userMetadata.setUserRequest(userRequest);
 
                 // Keep track of the licenses that users might need to be granted
                 if (record.get("Webex Contact Center Premium Agent").equalsIgnoreCase("true")) {
@@ -142,7 +143,6 @@ public class CsvProcessor {
                     userMetadata.addLicense(licenses.get("Webex Calling - Professional"));
                 }
 
-                userMetadata.setUserRequest(userRequest);
                 usersMetadataMap.put(userRequest.getEmail(), userMetadata);
             }
         } catch (IOException e) {

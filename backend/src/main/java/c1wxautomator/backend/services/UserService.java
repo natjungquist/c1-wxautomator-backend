@@ -2,6 +2,7 @@ package c1wxautomator.backend.services;
 
 // Author: Natalie Jungquist
 
+import c1wxautomator.backend.dtos.customResponses.CustomExportUsersResponse;
 import c1wxautomator.backend.dtos.licenses.License;
 import c1wxautomator.backend.dtos.locations.Location;
 import c1wxautomator.backend.dtos.users.*;
@@ -394,11 +395,11 @@ public class UserService {
      */
     private SearchUsersResponse canGetUserIds(CustomExportUsersResponse response, String accessToken, String orgId) {
         ApiResponseWrapper<SearchUsersResponse> searchUsersResponse = userGetter.searchUsers(accessToken, orgId);
-        if (!searchUsersResponse.is2xxSuccess() || !searchUsersResponse.hasData()) {
+        if (searchUsersResponse.is2xxSuccess() && searchUsersResponse.hasData()) {
             response.setStatus(HttpStatus.OK.value());
-            response.setMessage("Error getting any user IDs. No licenses were assigned.");
             return searchUsersResponse.getData();
         }
+        response.setMessage("Error getting any user IDs. No licenses were assigned.");
         return null;
     }
 

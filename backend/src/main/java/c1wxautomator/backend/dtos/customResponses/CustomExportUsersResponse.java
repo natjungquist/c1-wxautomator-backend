@@ -1,4 +1,4 @@
-package c1wxautomator.backend.dtos.users;
+package c1wxautomator.backend.dtos.customResponses;
 
 // Author: Natalie Jungquist
 
@@ -28,12 +28,7 @@ import java.util.List;
 @Setter
 @Getter
 @NoArgsConstructor
-public class CustomExportUsersResponse {
-    private Integer status;
-    private Integer totalCreateAttempts = 0;
-    private Integer numSuccessfullyCreated = 0;
-    private String message = "";
-    private List<CreateUserResult> results = new ArrayList<>();
+public class CustomExportUsersResponse extends CustomExportResponse {
 
     /**
      * Checks if the response is ready to be sent back to the client.
@@ -41,8 +36,8 @@ public class CustomExportUsersResponse {
      * @return true if its message, totalCreateAttempts, numSuccessfullyCreated, and status are not null.
      */
     public boolean isReadyToSend() {
-        return this.status != null && this.totalCreateAttempts != null && this.numSuccessfullyCreated != null
-                && this.message != null;
+        return this.getStatus() != null && this.getTotalCreateAttempts() != null && this.getNumSuccessfullyCreated() != null
+                && this.getMessage() != null;
     }
 
     /**
@@ -52,8 +47,8 @@ public class CustomExportUsersResponse {
      * @param message error message to be included in the response
      */
     public void setError(Integer status, String message) {
-        this.status = status;
-        this.message = message;
+        this.setStatus(status);
+        this.setMessage(message);
     }
 
     /**
@@ -65,9 +60,9 @@ public class CustomExportUsersResponse {
      * @param lastName of the created user
      */
     public void addSuccess(Integer status, String email, String firstName, String lastName) {
-        results.add(new CreateUserResult(status, email, firstName, lastName));
-        this.numSuccessfullyCreated++;
-        this.totalCreateAttempts++;
+        getResults().add(new CreateUserResult(status, email, firstName, lastName));
+        incrementNumSuccessfullyCreated();
+        incrementTotalCreateAttempts();
     }
 
     /**
@@ -79,9 +74,10 @@ public class CustomExportUsersResponse {
      * @param lastName the last name of the user
      * @param message the error message for the user creation attempt */
     public void addFailure(Integer status, String email, String firstName, String lastName, String message) {
-        results.add(new CreateUserResult(status, email, firstName, lastName, message));
-        this.totalCreateAttempts++;
+        getResults().add(new CreateUserResult(status, email, firstName, lastName, message));
+        incrementTotalCreateAttempts();
     }
+
     /**
      * Adds a license success result to a specific CreateUserResult in the results list.
      *
@@ -119,7 +115,7 @@ public class CustomExportUsersResponse {
      * @return The CreateUserResult object if found, null otherwise.
      */
     private CreateUserResult findUserResultByEmail(String email) {
-        return results.stream()
+        return getResults().stream()
                 .filter(result -> result.getEmail().equals(email))
                 .findFirst()
                 .orElse(null);
