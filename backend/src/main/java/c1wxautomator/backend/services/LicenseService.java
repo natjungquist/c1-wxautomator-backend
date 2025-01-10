@@ -6,7 +6,7 @@ import c1wxautomator.backend.dtos.licenses.AssignLicenseResponse;
 import c1wxautomator.backend.dtos.licenses.License;
 import c1wxautomator.backend.dtos.licenses.AssignLicenseRequest;
 import c1wxautomator.backend.dtos.licenses.ListLicensesResponse;
-import c1wxautomator.backend.dtos.users.CustomExportUsersResponse;
+import c1wxautomator.backend.dtos.customResponses.CustomExportUsersResponse;
 import c1wxautomator.backend.dtos.users.UserMetadata;
 import c1wxautomator.backend.dtos.wrappers.ApiResponseWrapper;
 import c1wxautomator.backend.exceptions.RequestCreationException;
@@ -140,14 +140,15 @@ public class LicenseService {
     }
 
     /**
+     * Creates a request object to assign a 'Webex Calling - Professional' license to a user.
      *
-     * @param orgId
-     * @param license
-     * @param email
-     * @param id
-     * @param locationId
-     * @param extension
-     * @return
+     * @param orgId organization ID of the user
+     * @param license license object to be assigned
+     * @param email of the user
+     * @param id personId of the user
+     * @param locationId of the location for the user's caller ID number
+     * @param extension of the user
+     * @return an AssignLicenseRequest object holding data for the request
      * @throws RequestCreationException if any of the input is not valid
      */
     private AssignLicenseRequest createCalling_Professional_AssignmentRequest(String orgId, License license, String email, String id, String locationId, String extension)
@@ -170,10 +171,11 @@ public class LicenseService {
     }
 
     /**
+     * Creates a request object to create a 'Contact Center Standard' or 'Contact Center Premium' license.
      *
-     * @param license
-     * @param operation
-     * @return
+     * @param license object to be assigned to the user
+     * @param operation what to do with this license. Options: 'add', 'remove', etc
+     * @return a LicenseRequest object holding details about the license request
      * @throws RequestCreationException if any of the input is not valid
      */
     private AssignLicenseRequest.LicenseRequest createCC_LicenseRequest(License license, String operation) throws RequestCreationException {
@@ -184,12 +186,13 @@ public class LicenseService {
     }
 
     /**
+     * Creates a request object to assign a 'Contact Center Standard' or 'Contact Center Premium' license to a user.
      *
-     * @param orgId
-     * @param license
-     * @param email
-     * @param id
-     * @return
+     * @param orgId of the user
+     * @param license holds license info for the user
+     * @param email of the user
+     * @param id personId of the user
+     * @return an AssignLicenseRequest object holding data for the request
      * @throws RequestCreationException if any of the input is not valid
      */
     private AssignLicenseRequest createCC_AssignmentRequest(String orgId, License license, String email, String id)
@@ -208,10 +211,11 @@ public class LicenseService {
     }
 
     /**
+     * Helper method to make sure that the input for the assignment request methods is valid.
      *
-     * @param orgId
-     * @param license
-     * @param id
+     * @param orgId of the user
+     * @param license holding license info to be assigned
+     * @param id personId of the user
      * @throws RequestCreationException if any of the input is not valid
      */
     private void verifyAssignmentInput(String orgId, License license, String id) throws RequestCreationException {
@@ -227,11 +231,13 @@ public class LicenseService {
     }
 
     /**
+     * Method to create license request objects for a list of created users. For each user, it assigns each license one by one.
+     * Evaluates whether the assignment succeeded or failed and updates the response accordingly.
      *
-     * @param response
-     * @param createdUsers
-     * @param accessToken
-     * @param orgId
+     * @param response the response to be returned to the client. This response will be updated by this method.
+     * @param createdUsers a list of the users that were created
+     * @param accessToken The token used for authenticating the request.
+     * @param orgId organization ID of the user
      */
     void assignLicensesAndUpdateResponse(CustomExportUsersResponse response, List<UserMetadata> createdUsers, String accessToken, String orgId) {
         for (UserMetadata createdUser : createdUsers) {
@@ -274,10 +280,11 @@ public class LicenseService {
     }
 
     /**
+     * Calls API to request a license for a user.
      *
-     * @param accessToken
-     * @param licenseRequest
-     * @return
+     * @param accessToken The token used for authenticating the request
+     * @param licenseRequest object representing the request to the API
+     * @return ApiResponseWrapper with 'data' being the response from the API
      */
     ApiResponseWrapper<AssignLicenseResponse> sendLicenseRequest(String accessToken, AssignLicenseRequest licenseRequest) {
         ApiResponseWrapper<AssignLicenseResponse> webexResponse = new ApiResponseWrapper<>();

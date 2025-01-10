@@ -1,14 +1,6 @@
 package c1wxautomator.backend.services;
 
 // Author: Natalie Jungquist
-//
-// Service class for managing location operations with Webex APIs.
-// Key features:
-//      - list the available locations of an organization.
-//      - retrieve details about a specific location.
-//
-// Usage:
-// Used by any controller or service that needs to use Webex location API.
 
 import c1wxautomator.backend.dtos.locations.ListFloorsResponse;
 import c1wxautomator.backend.dtos.locations.ListLocationsResponse;
@@ -23,6 +15,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ *  Service class for managing location operations with Webex APIs.
+ *  Key features:
+ *       - list the available locations of an organization.
+ *       - retrieve details about a specific location.
+ *  *
+ *  Usage:
+ *  Used by any controller or service that needs to use Webex location API.
+ */
 @Service
 public class LocationService {
 

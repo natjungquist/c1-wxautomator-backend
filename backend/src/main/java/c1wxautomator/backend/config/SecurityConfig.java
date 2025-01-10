@@ -1,14 +1,6 @@
 package c1wxautomator.backend.config;
 
 // Author: Natalie Jungquist
-//
-// This configuration class defines security settings for the application using Spring Security.
-// Key features include:
-// - Disabling CSRF protection as OAuth2 login may rely on browser redirects that can be interrupted by CSRF protection.
-// - Configuring CORS to allow requests only from the specified frontend URL, which is set in the `frontend.url` property.
-// - Defining security rules for different URLs, ensuring public access to `/check-auth` while requiring authentication for others.
-// - Setting up OAuth2 login and specifying the `LoginSuccessHandler` for redirection upon successful login.
-// - Configuring logout behavior and clearing session data and cookies.
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,6 +18,15 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
+/**
+ *  This configuration class defines security settings for the application using Spring Security.
+ *  Key features include:
+ *  - Disabling CSRF protection as OAuth2 login may rely on browser redirects that can be interrupted by CSRF protection.
+ *  - Configuring CORS to allow requests only from the specified frontend URL, which is set in the `frontend.url` property.
+ *  - Defining security rules for different URLs, ensuring public access to `/check-auth` while requiring authentication for others.
+ *  - Setting up OAuth2 login and specifying the `LoginSuccessHandler` for redirection upon successful login.
+ *  - Configuring logout behavior and clearing session data and cookies.
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity

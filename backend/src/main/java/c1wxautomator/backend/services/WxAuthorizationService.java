@@ -1,16 +1,6 @@
 package c1wxautomator.backend.services;
 
 // Author: Natalie Jungquist
-//
-// This service class handles OAuth2 authorization for Webex. It provides methods to retrieve access tokens, user details,
-// and manage the organization IDs that the authenticated user is authorized to interact with.
-// It uses the Spring Security OAuth2 library to manage OAuth2 authentication and authorization flows.
-//
-// Dependencies:
-//      - OAuth2AuthorizedClientService to get the current oauth client's info
-//
-// Usage:
-// Used by any service or controller that needs to retrieve oauth2 info about the current user/client.
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,11 +15,27 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ *  This service class handles OAuth2 authorization for Webex. It provides methods to retrieve access tokens, user details,
+ *  and manage the organization IDs that the authenticated user is authorized to interact with.
+ *  It uses the Spring Security OAuth2 library to manage OAuth2 authentication and authorization flows.
+ *  *
+ *  Dependencies:
+ *       - OAuth2AuthorizedClientService to get the current oauth client's info
+ *  *
+ *  Usage:
+ *  Used by any service or controller that needs to retrieve oauth2 info about the current user/client.
+ */
 @Service
 public class WxAuthorizationService {
     private final OAuth2AuthorizedClientService authorizedClientService;
     private final List<String> authorizedOrgIds = new ArrayList<>();
 
+    /**
+     * Constructor with dependency injection with OAuth2 service.
+     *
+     * @param authorizedClientService than can extract oauth2 info.
+     */
     public WxAuthorizationService(OAuth2AuthorizedClientService authorizedClientService) {
         this.authorizedClientService = authorizedClientService;
     }

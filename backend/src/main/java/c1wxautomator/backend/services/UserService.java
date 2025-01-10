@@ -1,19 +1,8 @@
 package c1wxautomator.backend.services;
 
 // Author: Natalie Jungquist
-//
-// Service class for managing user operations with Webex APIs, including user creation and license assignment.
-// This class interacts with Webex APIs to create users in bulk, assign licenses, and handle CSV file uploads.
-// It processes CSV files containing user data, validates required columns, and manages the bulk creation process.
-//
-// Dependencies:
-//      - Spring Framework's MultipartFile for file handling.
-//      - Apache Commons CSV to parse CSVs
-//      - custom data transfer objects such as User, UserBulkRequest, UserBulkResponse, etc.
-//
-// Usage:
-// Used by any controller that needs to bulk export users to Webex API.
 
+import c1wxautomator.backend.dtos.customResponses.CustomExportUsersResponse;
 import c1wxautomator.backend.dtos.licenses.License;
 import c1wxautomator.backend.dtos.locations.Location;
 import c1wxautomator.backend.dtos.users.*;
@@ -28,6 +17,19 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.*;
 import java.util.concurrent.*;
 
+/**
+ *  Service class for managing user operations with Webex APIs, including user creation and license assignment.
+ *  This class interacts with Webex APIs to create users in bulk, assign licenses, and handle CSV file uploads.
+ *  It processes CSV files containing user data, validates required columns, and manages the bulk creation process.
+ *  *
+ *  Dependencies:
+ *       - Spring Framework's MultipartFile for file handling.
+ *       - Apache Commons CSV to parse CSVs
+ *       - custom data transfer objects such as User, UserBulkRequest, UserBulkResponse, etc.
+ *  *
+ *  Usage:
+ *  Used by any controller that needs to bulk export users to Webex API.
+ */
 @Service
 public class UserService {
 
@@ -35,6 +37,13 @@ public class UserService {
     private final UserGetter userGetter;
     private final CsvProcessor csvProcessor;
 
+    /**
+     * Constructor with dependency injection.
+     *
+     * @param licenseService to perform operations related to licensing.
+     * @param userGetter to perform operations related to getting user info.
+     * @param csvProcessor to perform operations on CSV file.
+     */
     public UserService(LicenseService licenseService, UserGetter userGetter, CsvProcessor csvProcessor) {
         this.licenseService = licenseService;
         this.userGetter = userGetter;
@@ -59,7 +68,7 @@ public class UserService {
 
         // These maps store extra information about the users. This info is separate because creating the user must be done first.
         // After the user is created, this info is need for further operations on the user.
-        Map<String, UserMetadata> usersMetadataMap = new HashMap<>(); //key: username, value: usermetadata
+        Map<String, UserMetadata> usersMetadataMap = new HashMap<>(); //key: username, value: userMetadata
         Map<String, String> bulkIdToEmailMap = new HashMap<>(); //key:bulkId, value: email/username
 
         // Step 1: Read users from CSV and populate users in usersMetadataMap with their userRequests, licenses, and locations
@@ -386,12 +395,13 @@ public class UserService {
      */
     private SearchUsersResponse canGetUserIds(CustomExportUsersResponse response, String accessToken, String orgId) {
         ApiResponseWrapper<SearchUsersResponse> searchUsersResponse = userGetter.searchUsers(accessToken, orgId);
-        if (!searchUsersResponse.is2xxSuccess() || !searchUsersResponse.hasData()) {
+        if (searchUsersResponse.is2xxSuccess() && searchUsersResponse.hasData()) {
             response.setStatus(HttpStatus.OK.value());
-            response.setMessage("Error getting any user IDs. No licenses were assigned.");
             return searchUsersResponse.getData();
+        } else {
+            response.setMessage("Error getting any user IDs. No licenses were assigned.");
+            return null;
         }
-        return null;
     }
 
     /**

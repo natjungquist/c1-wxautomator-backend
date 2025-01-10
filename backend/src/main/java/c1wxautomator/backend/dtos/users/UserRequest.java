@@ -1,22 +1,6 @@
 package c1wxautomator.backend.dtos.users;
 
 // Author: Natalie Jungquist
-//
-// This class holds data for user information needed to export users.
-// Its fields are named to fit Webex API request specifications.
-//
-// Contains inner classes that represent nested json structure for request.
-// Contains methods to set inner class data. This makes the code more modular, understandable,
-//      and maintainable, ensuring proper data handling and integration with the Webex API.
-//
-// NOTE that other user metadata such as their licenses is encapsulated by the UserMetadata class.
-//      The metadata is separate because it cannot be included as part of the UserRequest data sent to the Webex API.
-//
-// NOTE that the emails field is required, and one of the emails in it must match the email/userName field,
-//      but it should be set to 'primary':false.
-//
-// Usage:
-// UserService will transfer client's data into this User class before sending it as part of a request to the Webex API.
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
@@ -26,6 +10,23 @@ import lombok.NoArgsConstructor;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ *  This class holds data for user information needed to export users.
+ *  Its fields are named to fit Webex API request specifications.
+ * //
+ *  Contains inner classes that represent nested json structure for request.
+ *  Contains methods to set inner class data. This makes the code more modular, understandable,
+ *       and maintainable, ensuring proper data handling and integration with the Webex API.
+ * //
+ *  NOTE that other user metadata such as their licenses is encapsulated by the UserMetadata class.
+ *       The metadata is separate because it cannot be included as part of the UserRequest data sent to the Webex API.
+ * //
+ *  NOTE that the emails field is required, and one of the emails in it must match the email/userName field,
+ *       but it should be set to 'primary':false.
+ * //
+ *  Usage:
+ *  UserService transfers client's data into this User class before sending it as part of a request to the Webex API.
+ */
 @Setter
 @Getter
 @NoArgsConstructor
@@ -129,8 +130,11 @@ public class UserRequest {
         phoneNumbers.add( new PhoneNumber(extension, "work_extension", "Work extension", true) );
     }
 
-    // INNER CLASSES
     // REQUIRED
+
+    /**
+     * Nested class to represent the 'name' field of a user request.
+     */
     @Setter
     @Getter
     public static class Name {
@@ -142,6 +146,9 @@ public class UserRequest {
     }
 
     // REQUIRED
+    /**
+     * Nested class to represent the 'email' field of a user request.
+     */
     @Setter
     @Getter
     public static class Email {
@@ -150,6 +157,14 @@ public class UserRequest {
         private String display;
         private Boolean primary;
 
+        /**
+         * Constructor of an email field.
+         *
+         * @param value the email as a string
+         * @param type the type of email. Possible values: 'work', 'home', 'room', or 'other'
+         * @param display the display name of the email that appears on the Webex desktop app
+         * @param isPrimary true if the email if their primary email
+         */
         public Email(String value, String type, String display, boolean isPrimary) {
             this.value = value;
             this.type = type;
@@ -159,6 +174,9 @@ public class UserRequest {
     }
 
     // REQUIRED
+    /**
+     * Nested class to represent the 'phone number' field of a user request.
+     */
     @Setter
     @Getter
     public static class PhoneNumber {
@@ -167,6 +185,15 @@ public class UserRequest {
         private String display;
         private Boolean primary;
 
+        /**
+         * Constructor of a phone number field.
+         *
+         * @param value the phone number as a string
+         * @param type the type of phone number. Possible values: 'work', 'home', 'mobile',
+         *             'work_extension', 'fax', 'pager', 'other'
+         * @param display a human-readable name, primarily used for display purposes
+         * @param isPrimary true if this phone number is the user's primary phone number
+         */
         public PhoneNumber(String value, String type, String display, boolean isPrimary) {
             this.value = value;
             this.type = type;
@@ -177,6 +204,10 @@ public class UserRequest {
 
 
     // OPTIONAL
+
+    /**
+     * Nested class representing the 'photo' field of a user request.
+     */
     @Setter
     @Getter
     @NoArgsConstructor
@@ -188,6 +219,9 @@ public class UserRequest {
     }
 
     // OPTIONAL
+    /**
+     * Nested class representing the 'address' field of a user request.
+     */
     @Setter
     @Getter
     @NoArgsConstructor
@@ -201,6 +235,9 @@ public class UserRequest {
     }
 
     // OPTIONAL
+    /**
+     * Nested class representing the 'enterprise user' schema field of a user request.
+     */
     @Setter
     @Getter
     @NoArgsConstructor
@@ -212,6 +249,9 @@ public class UserRequest {
         private String employeeNumber;
         private Manager manager;
 
+        /**
+         * Nested class representing the 'manager' field of a enterprise user schema.
+         */
         @Setter
         @Getter
         @NoArgsConstructor
@@ -221,6 +261,9 @@ public class UserRequest {
     }
 
     // OPTIONAL
+    /**
+     * Nested class representing the 'cisco identity user' schema field of a user request.
+     */
     @Setter
     @Getter
     @NoArgsConstructor
@@ -234,6 +277,9 @@ public class UserRequest {
         @JsonProperty("externalAttribute*")
         private List<ExternalAttribute> externalAttributes;
 
+        /**
+         * Nested class representing the 'sip address' field of a cisco identity schema.
+         */
         @Setter
         @Getter
         @NoArgsConstructor
@@ -244,6 +290,10 @@ public class UserRequest {
             private Boolean primary;
         }
 
+        /**
+         * Nested class representing the 'managed org' field of a cisco identity schema.
+         * The organizations that a user can manage.
+         */
         @Setter
         @Getter
         @NoArgsConstructor
@@ -252,6 +302,9 @@ public class UserRequest {
             private String role;
         }
 
+        /**
+         * Nested class representing the 'managed group' field of a cisco identity schema.
+         */
         @Setter
         @Getter
         @NoArgsConstructor
@@ -261,6 +314,9 @@ public class UserRequest {
             private String role;
         }
 
+        /**
+         * Nested class representing the 'external attribute' field of a cisco identity schema.
+         */
         @Setter
         @Getter
         @NoArgsConstructor
