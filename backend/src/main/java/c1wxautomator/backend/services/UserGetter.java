@@ -1,13 +1,6 @@
 package c1wxautomator.backend.services;
 
 // Author: Natalie Jungquist
-//
-// Service class for managing user GET operations with Webex APIs.
-// Key features:
-//      - search all users at an organization
-//
-// Usage:
-// Used by any controller or service that needs to use Webex SCIM 2 User API with GET operation.
 
 import c1wxautomator.backend.dtos.users.SearchUsersResponse;
 import c1wxautomator.backend.dtos.wrappers.ApiResponseWrapper;
@@ -16,6 +9,14 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.*;
 
+/**
+ *  Service class for managing user GET operations with Webex APIs.
+ *  Key features:
+ *       - search all users at an organization
+ * //
+ *  Usage:
+ *  Used by any controller or service that needs to use Webex SCIM 2 User API with GET operation.
+ */
 @Service
 public class UserGetter {
     /**
