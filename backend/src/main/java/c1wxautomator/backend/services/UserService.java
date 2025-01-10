@@ -376,7 +376,7 @@ public class UserService {
                     // 5b. Save the userIds into the usersMetadataMap
                     saveUserIds(searchUsersResponse, usersMetadataMap);
                 }
-            }, 6, TimeUnit.SECONDS);
+            }, 5, TimeUnit.SECONDS);
         } catch (Exception e) {
             response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error scheduling the delay: " + e.getMessage());
         }
@@ -395,11 +395,11 @@ public class UserService {
      */
     private SearchUsersResponse canGetUserIds(CustomExportUsersResponse response, String accessToken, String orgId) {
         ApiResponseWrapper<SearchUsersResponse> searchUsersResponse = userGetter.searchUsers(accessToken, orgId);
-        if (!searchUsersResponse.is2xxSuccess() || !searchUsersResponse.hasData()) {
+        if (searchUsersResponse.is2xxSuccess() && searchUsersResponse.hasData()) {
             response.setStatus(HttpStatus.OK.value());
-            response.setMessage("Error getting any user IDs. No licenses were assigned.");
             return searchUsersResponse.getData();
         }
+        response.setMessage("Error getting any user IDs. No licenses were assigned.");
         return null;
     }
 
