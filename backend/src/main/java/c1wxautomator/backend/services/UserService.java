@@ -2,6 +2,7 @@ package c1wxautomator.backend.services;
 
 // Author: Natalie Jungquist
 
+import c1wxautomator.backend.dtos.customResponses.CustomExportUsersResponse;
 import c1wxautomator.backend.dtos.licenses.License;
 import c1wxautomator.backend.dtos.locations.Location;
 import c1wxautomator.backend.dtos.users.*;
@@ -375,7 +376,7 @@ public class UserService {
                     // 5b. Save the userIds into the usersMetadataMap
                     saveUserIds(searchUsersResponse, usersMetadataMap);
                 }
-            }, 5, TimeUnit.SECONDS);
+            }, 6, TimeUnit.SECONDS);
         } catch (Exception e) {
             response.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Error scheduling the delay: " + e.getMessage());
         }

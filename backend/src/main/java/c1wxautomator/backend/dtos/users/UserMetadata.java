@@ -92,7 +92,7 @@ public class UserMetadata {
      * @return String of digits representing the user's extension, or null if they don't have one.
      */
     public String getExtension() {
-        if (!userRequest.getPhoneNumbers().isEmpty()) {
+        if (!(userRequest.getPhoneNumbers() == null) && !userRequest.getPhoneNumbers().isEmpty()) {
             for (UserRequest.PhoneNumber num : userRequest.getPhoneNumbers()) {
                 if (num.getType().equals("work_extension") && num.getPrimary()) {
                     return num.getValue();

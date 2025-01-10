@@ -6,7 +6,7 @@ import c1wxautomator.backend.dtos.licenses.License;
 import c1wxautomator.backend.dtos.licenses.ListLicensesResponse;
 import c1wxautomator.backend.dtos.locations.ListLocationsResponse;
 import c1wxautomator.backend.dtos.locations.Location;
-import c1wxautomator.backend.dtos.users.CustomExportUsersResponse;
+import c1wxautomator.backend.dtos.customResponses.CustomExportUsersResponse;
 import c1wxautomator.backend.dtos.wrappers.ApiResponseWrapper;
 import c1wxautomator.backend.services.*;
 import org.springframework.http.HttpStatus;
