@@ -12,10 +12,9 @@ import java.util.List;
 /**
  *  This is a custom class representing a response that the application sends to the client.
  *  Key features include:
- *       - message if further details about the response need to be relayed.
  *       - results list storing information about each user processed during the export.
  *       - licenseResults lists for each user, storing information about each license that was attempted to be assigned.
- *       - methods to add success and failure results to the respective lists,
+ *       - methods to add success and failure results to the list of results,
  *           including details such as bulk ID, username, and error details.
  *  *
  *  The CreateUserResult and AssignLicenseResult classes are nested static classes that represent individual
@@ -30,26 +29,7 @@ import java.util.List;
 @NoArgsConstructor
 public class CustomExportUsersResponse extends CustomExportResponse {
 
-    /**
-     * Checks if the response is ready to be sent back to the client.
-     *
-     * @return true if its message, totalCreateAttempts, numSuccessfullyCreated, and status are not null.
-     */
-    public boolean isReadyToSend() {
-        return this.getStatus() != null && this.getTotalCreateAttempts() != null && this.getNumSuccessfullyCreated() != null
-                && this.getMessage() != null;
-    }
-
-    /**
-     * Sets error status and message for the response.
-     *
-     * @param status http status code representing the error
-     * @param message error message to be included in the response
-     */
-    public void setError(Integer status, String message) {
-        this.setStatus(status);
-        this.setMessage(message);
-    }
+    private List<CreateUserResult> results = new ArrayList<>();
 
     /**
      * Adds a success result for a user creation attempt to the results list.
@@ -60,7 +40,7 @@ public class CustomExportUsersResponse extends CustomExportResponse {
      * @param lastName of the created user
      */
     public void addSuccess(Integer status, String email, String firstName, String lastName) {
-        getResults().add(new CreateUserResult(status, email, firstName, lastName));
+        results.add(new CreateUserResult(status, email, firstName, lastName));
         incrementNumSuccessfullyCreated();
         incrementTotalCreateAttempts();
     }
@@ -74,7 +54,7 @@ public class CustomExportUsersResponse extends CustomExportResponse {
      * @param lastName the last name of the user
      * @param message the error message for the user creation attempt */
     public void addFailure(Integer status, String email, String firstName, String lastName, String message) {
-        getResults().add(new CreateUserResult(status, email, firstName, lastName, message));
+        results.add(new CreateUserResult(status, email, firstName, lastName, message));
         incrementTotalCreateAttempts();
     }
 
@@ -115,7 +95,7 @@ public class CustomExportUsersResponse extends CustomExportResponse {
      * @return The CreateUserResult object if found, null otherwise.
      */
     private CreateUserResult findUserResultByEmail(String email) {
-        return getResults().stream()
+        return results.stream()
                 .filter(result -> result.getEmail().equals(email))
                 .findFirst()
                 .orElse(null);
