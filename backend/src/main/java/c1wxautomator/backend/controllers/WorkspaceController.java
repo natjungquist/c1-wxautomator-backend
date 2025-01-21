@@ -18,7 +18,20 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- *
+ *  This controller handles workspace-related endpoints for the application.
+ *  Key features include:
+ *       - Export workspaces to Webex given a csv file as input.
+ * //
+ *  Dependencies:
+ *       - WorkspaceService to execute the operations.
+ *       - LocationService to get the possible locations a user can be at.
+ *       - LicenseService to get the possible license a user can be assigned.
+ *       - WxAuthorizationService to get the access token for the app to work and the id of the org to add users to.
+ *       - Spring Framework's MultipartFile for receiving file as input.
+ *       - CsvValidator class to validate that the proper csv file is sent in the request.
+ * //
+ *  Usage:
+ *  Endpoint for client to export workspaces.
  */
 @RestController
 public class WorkspaceController {
@@ -28,6 +41,14 @@ public class WorkspaceController {
     private final WxAuthorizationService wxAuthorizationService;
     private final LicenseService licenseService;
 
+    /**
+     * Constructor with dependency injection.
+     *
+     * @param locationService to retrieve locations of the customer
+     * @param workspaceService to export workspaces for the customer
+     * @param wxAuthorizationService to retrieve client's authorization details
+     * @param licenseService to retrieve license details of the customer
+     */
     public WorkspaceController(LocationService locationService, WorkspaceService workspaceService, WxAuthorizationService wxAuthorizationService, LicenseService licenseService) {
         this.locationService = locationService;
         this.workspaceService = workspaceService;

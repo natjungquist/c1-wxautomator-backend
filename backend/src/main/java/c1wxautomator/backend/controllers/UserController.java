@@ -4,7 +4,6 @@ package c1wxautomator.backend.controllers;
 
 import c1wxautomator.backend.dtos.licenses.License;
 import c1wxautomator.backend.dtos.licenses.ListLicensesResponse;
-import c1wxautomator.backend.dtos.locations.ListLocationsResponse;
 import c1wxautomator.backend.dtos.locations.Location;
 import c1wxautomator.backend.dtos.customResponses.CustomExportUsersResponse;
 import c1wxautomator.backend.dtos.wrappers.ApiResponseWrapper;
