@@ -12,7 +12,7 @@ import lombok.Setter;
  *  an Address class with fields for detailed address information.
  *  *
  *  Usage:
- *  To transfer location data between different services and controllers to transfer location data.
+ *  To transfer location data between different services and controllers.
  */
 @Getter
 @Setter

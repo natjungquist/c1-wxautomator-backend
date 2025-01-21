@@ -321,6 +321,8 @@ public class UserService {
             String firstName = userMetadata.getFirstName();
             String lastName = userMetadata.getLastName();
 
+            // TODO CHANGE THE USER RESPONSE CALL TO WEBCLIENT TO GET THE ACTUAL RESPONSE CODE
+
             if (operation.getStatus().equals("201")) { // NOTE: Must hardcode the values as strings because that is how Webex API responds
                 response.addSuccess(201, email, firstName, lastName);
                 createdUsers.add(userMetadata);

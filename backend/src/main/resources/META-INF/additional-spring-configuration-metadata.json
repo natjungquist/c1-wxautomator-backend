@@ -14,5 +14,10 @@
       "name": "callback.url",
       "type": "java.lang.String",
       "description": "callback.url."
+    },
+    {
+      "name": "webexApi.url",
+      "type": "java.lang.String",
+      "description": "The base URL of the Webex API."
     }
   ] }
