@@ -101,27 +101,31 @@ public class LocationService {
     }
 
     /**
-     * Creates a map of all the locations given. This map makes it easier to lookup by a location name.
+     * Creates a map of all the locations at an organization.
      *
-     * @param allLocations list of locations to be put in a map.
-     * @return map of locations where the name is the key and a location object is the value,
-     * else null if allLocations has nothing in it.
+     * @param accessToken the token used for authenticating the request
+     * @param orgId to get the locations from
+     * @return map of the locations at the specified organization where the keys are the location names and the values are location objects
+     * else empty map if response from webex says there are no locations.
      */
-    public Map<String, Location> makeLocationsMap(List<Location> allLocations) {
-        if (allLocations == null || allLocations.isEmpty()) {
-            return null;
+    public Map<String, Location> getLocationsMap(String accessToken, String orgId) {
+        Map<String, Location> locations = new HashMap<>();
+        ApiResponseWrapper<ListLocationsResponse> listLocationsFromWebex = listLocations(accessToken, orgId);
+        if (listLocationsFromWebex.is2xxSuccess() && listLocationsFromWebex.hasData()) {
+            ListLocationsResponse listLocationsResponse = listLocationsFromWebex.getData();
+            if (listLocationsResponse.hasLocations()) {
+                for (Location loc : listLocationsResponse.getItems()) {
+                    locations.put(loc.getName(), loc);
+                }
+            }
         }
-        Map<String, Location> locationMap = new HashMap<>();
-        for (Location loc : allLocations) {
-            locationMap.put(loc.getName(), loc);
-        }
-        return locationMap;
+        return locations;
     }
 
     /**
      * Calls Webex API to get a list of the floors at a certain location.
      *
-     * @param accessToken The token used for authenticating the request
+     * @param accessToken the token used for authenticating the request
      * @param locationId location to get the floors from
      * @return ApiResponseWrapper with 'data' being the response from the API
      */

@@ -2,6 +2,9 @@ package c1wxautomator.backend.services;
 
 // Author: Natalie Jungquist
 
+import c1wxautomator.backend.dtos.customResponses.CustomExportResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
@@ -73,5 +76,31 @@ public class CsvValidator {
         } catch (IOException e) {
             return false;
         }
+    }
+
+    /**
+     * Checks if the file is valid for further processing.
+     * If not valid, updates the CustomExportResponse with value and message.
+     * Use in controllers that receive csv files as request parameters.
+     *
+     * @param file input from client
+     * @param customResponse to be sent back to client
+     * @param requiredCols required columns in the csv file
+     * @return true if the file is NOT valid, false if it is valid
+     */
+    public static boolean isInvalidCsvForResponse(@RequestParam("file") MultipartFile file, CustomExportResponse customResponse, Set<String> requiredCols) {
+        if (file == null || file.isEmpty()) {
+            customResponse.setError(HttpStatus.BAD_REQUEST.value(), "File is required and cannot be empty.");
+            return true;
+        }
+        if (!isCsvFile(file)) {
+            customResponse.setError(HttpStatus.BAD_REQUEST.value(), "The wrong type of file was provided. Must be a CSV file.");
+            return true;
+        }
+        if (!csvContainsRequiredCols(file, requiredCols)) {
+            customResponse.setError(HttpStatus.BAD_REQUEST.value(), "File provided does not contain all the columns required to process the request.");
+            return true;
+        }
+        return false;
     }
 }

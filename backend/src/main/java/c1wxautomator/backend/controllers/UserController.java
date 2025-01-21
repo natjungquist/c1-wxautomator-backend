@@ -68,22 +68,12 @@ public class UserController {
 
         CustomExportUsersResponse customResponse = new CustomExportUsersResponse();
 
-        if (file == null || file.isEmpty()) {
-            customResponse.setError(HttpStatus.BAD_REQUEST.value(), "File is required and cannot be empty.");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(customResponse);
-        }
-        if (!CsvValidator.isCsvFile(file)) {
-            customResponse.setError(HttpStatus.BAD_REQUEST.value(), "The wrong type of file was provided. Must be a CSV file.");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(customResponse);
-        }
         Set<String> requiredCols = new HashSet<>(
                 Set.of("First Name", "Display Name", "Status", "Email", "Extension", "Location",
                         "Webex Contact Center Premium Agent", "Webex Contact Center Standard Agent", "Webex Calling - Professional")
         );
-        if (!(CsvValidator.csvContainsRequiredCols(file, requiredCols))) {
-            customResponse.setError(HttpStatus.BAD_REQUEST.value(), "File provided does not contain all the columns required to process the request.");
+        if (CsvValidator.isInvalidCsvForResponse(file, customResponse, requiredCols))
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(customResponse);
-        }
 
         String accessToken = wxAuthorizationService.getAccessToken();
         String orgId = wxAuthorizationService.getAuthorizedOrgId();
@@ -100,14 +90,7 @@ public class UserController {
             }
         }
 
-        Map<String, Location> locations = new HashMap<>();
-        ApiResponseWrapper<ListLocationsResponse> listLocationsFromWebex = locationService.listLocations(accessToken, orgId);
-        if (listLocationsFromWebex.is2xxSuccess() && listLocationsFromWebex.hasData()) {
-            ListLocationsResponse listLocationsResponse = listLocationsFromWebex.getData();
-            if (listLocationsResponse.hasLocations()) {
-                 locations = locationService.makeLocationsMap(listLocationsResponse.getItems());
-            }
-        }
+        Map<String, Location> locations = locationService.getLocationsMap(accessToken, orgId);
 
         customResponse = userService.exportUsers(file, accessToken, orgId, licenses, locations);
 
@@ -117,4 +100,6 @@ public class UserController {
         customResponse.setError(HttpStatus.INTERNAL_SERVER_ERROR.value(), "An unexpected error occurred.");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(customResponse);
     }
+
+
 }
